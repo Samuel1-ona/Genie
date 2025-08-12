@@ -108,6 +108,94 @@ end
     end
 
 
+    function mod.delete(proposal_id)
+        -- check if the creator is deleting its own proposal
+        if proposal_id ~= proposals.From then
+            print("Creator is not deleting its own proposal" .. proposals.From)
+            return false
+        end
+
+        -- check if the proposal is valid
+        if not proposals or proposals.id == nil then
+            print("Proposal is not a valid proposal")
+            return false
+        end
+        --delete the proposals from the list of proposals 
+
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.id == proposal_id then
+                table.remove(Proposals, i)
+                print("Proposal deleted successfully" .. proposal_id)
+                return true
+            end
+        end
+    end
 
 
+    function mod.get(proposal_id)
+        -- check if the proposal is valid
+        if not proposals or proposals.id == nil then
+            print("Proposal is not a valid proposal")
+            return false
+        end
 
+        -- get the proposal from the list of proposals
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.id == proposal_id then
+                return proposal
+            end
+        end
+
+        print("Proposal not found" .. proposal_id)
+        return nil
+        
+    end
+
+    function mod.get_all()
+        return Proposals
+    end
+
+
+    function mod.get_all_by_creator(creator)
+        local proposals = {}
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.From == creator then
+                table.insert(proposals, proposal)
+            end
+        end
+
+        return proposals
+    end
+
+    function mod.get_all_by_status(status)
+        local proposals = {}
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.status == status then
+                table.insert(proposals, proposal)
+            end
+        end
+
+        return proposals
+    end
+
+    function mod.get_all_by_creator_and_status(creator, status)
+        local proposals = {}
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.From == creator and proposal.status == status then
+                table.insert(proposals, proposal)
+            end
+        end
+
+        return proposals
+    end
+
+
+    function mod.get_all_by_creator_and_status_and_type(creator, status, type)
+        local proposals = {}
+        for i, proposal in ipairs(Proposals) do 
+            if proposal.From == creator and proposal.status == status and proposal.type == type then
+                table.insert(proposals, proposal)
+            end
+        end
+        return proposals
+    end
