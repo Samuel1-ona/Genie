@@ -1,0 +1,26 @@
+{
+  "name": "genie",
+  "type": "module",
+  "scripts": {
+    "counter:deploy": "cd ./ao/counter && ./scripts/deploy.sh",
+    "counter:test": "cd ./ao/counter && ./scripts/test.sh",
+    "counter:build": "cd ./ao/counter && ./scripts/build.sh",
+    "counter:inject": "STATE_FILE=./ao/counter/state-processes.yaml node ./utils/inject-process.js",
+    "frontend:dev": "cd ./apps/frontend && npm run dev",
+    "frontend:build": "cd ./apps/frontend && npm run build",
+    "frontend:deploy": "cd ./apps/frontend && npm run deploy",
+    "postinstall": "chmod +x ./ao/counter/scripts/* && chmod +x ./apps/frontend/scripts/*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "aoform": "latest",
+    "yaml": "^2.4.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "ao/*"
+  ]
+}
