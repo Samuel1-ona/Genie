@@ -1,2 +1,296 @@
 
 
+local mod = {}
+
+local platform_adapter = require("lib.platform_adapter")
+
+local  notifications ={
+    discord ={
+        embed = {
+            title = "",
+            discription = "",
+            color = "",
+            fields = {
+                
+                    { name = "", value = "", inline = true or false},
+                    { name = "", value = "", inline = true or false},
+                    { name = "", value = "", inline = true or false,} 
+        }, 
+        url = "{}"
+    }
+},
+telegram = {
+    message = "",
+    url = "{}"
+}
+}
+
+local function format_discord_message(proposal, summary)
+    local message = notifications.discord
+    local embed = message.embed
+
+    local formatted_embed = {
+        title = embed.title:gsub("{title}", proposal.title or "Unknown"),
+        description = embed.description:gsub("{description}", summary or "No summary available"),
+        color = embed.color,
+        fields = {},
+        url = embed.url:gsub("{url}", proposal.url or "")
+    }
+    
+    for i, field in ipairs(embed.fields) do 
+        local formatted_field = {
+            name = field.name,
+            value = field.value,
+            inline = field.inline
+        }
+
+        if field.name:find("Deadline") then
+            formatted_field.value = proposal.deadline and os.date("%B %d, %Y", proposal.deadline) or "No deadline"
+        elseif field.name:find("Proposer") then
+            formatted_field.value = proposal.proposer or "Unknown"
+        elseif field.name:find("Platform") then
+            formatted_field.value = proposal.platform or "Unknown"
+        end
+        
+        table.insert(formatted_embed.fields, formatted_field)
+    end
+    
+    return {
+        embeds = {formatted_embed}
+    }
+end
+
+
+-- Format message for Telegram
+local function format_telegram_message(proposal, summary)
+    local template = notifications.telegram.message
+    
+    local formatted_text = template
+        :gsub("{title}", proposal.title or "Unknown")
+        :gsub("{summary}", summary or "No summary available")
+        :gsub("{deadline}", proposal.deadline and os.date("%B %d, %Y", proposal.deadline) or "No deadline")
+        :gsub("{proposer}", proposal.proposer or "Unknown")
+        :gsub("{platform}", proposal.platform or "Unknown")
+        :gsub("{url}", proposal.url or "")
+    
+    return {
+        text = formatted_text,
+        parse_mode = "Markdown"
+    }
+end
+
+
+local function send_discord_notification(proposal, summary, webhook_url)
+    print("Sending Discord notification for proposal: " .. proposal.title)
+
+    local message = format_discord_message(proposal, summary)
+
+    -- Validate webhook URL
+    if not webhook_url or webhook_url == "" then
+        print("Error: Discord webhook URL is required")
+        return false, "Webhook URL is required"
+    end
+
+    -- Validate Discord webhook URL format
+    if not webhook_url:match("^https://discord%.com/api/webhooks/%d+/[%w%-_]+$") then
+        print("Error: Invalid Discord webhook URL format")
+        return false, "Invalid webhook URL format"
+    end
+
+    -- Prepare headers for Discord webhook
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["User-Agent"] = "Genie-Proposal-Summarizer/1.0"
+    }
+
+    local json_message = json.encode(message)
+
+    print("Sending to Discord webhook: " .. webhook_url)
+    print("Message payload: " .. json_message)
+
+    local response = platform_adapter.make_http_request(webhook_url, headers, json_message)
+
+    if response and response.status == 204 then
+        print("Discord notification sent successfully!")
+        return true, "Notification sent successfully"
+    else
+        local error_msg = "Failed to send Discord notification"
+        if response then
+            error_msg = error_msg .. " (Status: " .. tostring(response.status) .. ")"
+            if response.body then
+                error_msg = error_msg .. " - " .. response.body
+            end
+        end
+        print("ERROR: " .. error_msg)
+        return false, error_msg
+    end
+end
+
+
+local function send_telegram_notification(proposal, summary, bot_token, chat_id)
+    print("Sending Telegram notification for proposal: " .. proposal.title)
+
+    local message = format_telegram_message(proposal, summary)
+
+    -- Validate bot token and chat ID
+    if not bot_token or bot_token == "" then
+        print("Error: Telegram bot token is required")
+        return false, "Bot token is required"
+    end
+
+    if not chat_id or chat_id == "" then
+        print("Error: Telegram chat ID is required")
+        return false, "Chat ID is required"
+    end
+
+    -- Validate bot token format (should be like "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+    if not bot_token:match("^%d+:[%w%-_]+$") then
+        print("Error: Invalid Telegram bot token format")
+        return false, "Invalid bot token format"
+    end
+
+    -- Prepare Telegram Bot API URL
+    local telegram_api_url = "https://api.telegram.org/bot" .. bot_token .. "/sendMessage"
+    
+    -- Prepare message payload
+    local payload = {
+        chat_id = chat_id,
+        text = message.text,
+        parse_mode = message.parse_mode,
+        disable_web_page_preview = false
+    }
+
+    -- Prepare headers
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["User-Agent"] = "Genie-Proposal-Summarizer/1.0"
+    }
+
+    -- Encode payload to JSON
+    local json_payload = json.encode(payload)
+    
+    print("Sending to Telegram: " .. telegram_api_url)
+    print("Message payload: " .. json_payload)
+
+    local response = platform_adapter.make_http_request(telegram_api_url, headers, json_payload)
+
+    if response and response.status == 200 then
+        local response_data = json.decode(response.body)
+        if response_data and response_data.ok then
+            print("Telegram notification sent successfully!")
+            return true, "Notification sent successfully"
+        else
+            local error_msg = "Telegram API error: " .. (response_data.description or "Unknown error")
+            print("ERROR: " .. error_msg)
+            return false, error_msg
+        end
+    else
+        local error_msg = "Failed to send Telegram notification"
+        if response then
+            error_msg = error_msg .. " (Status: " .. tostring(response.status) .. ")"
+            if response.body then
+                error_msg = error_msg .. " - " .. response.body
+            end
+        end
+        print("ERROR: " .. error_msg)
+        return false, error_msg
+    end
+end
+
+
+
+
+-- Subscribers list (you'll need to populate this)
+local subscribers = {}
+
+-- Add subscriber function
+function mod.add_subscriber(subscriber)
+    if not subscriber or not subscriber.type then
+        print("Error: Subscriber must have a type")
+        return false
+    end
+    
+    if subscriber.type == "discord" and not subscriber.webhook_url then
+        print("Error: Discord subscriber must have webhook_url")
+        return false
+    end
+    
+    if subscriber.type == "telegram" and (not subscriber.bot_token or not subscriber.chat_id) then
+        print("Error: Telegram subscriber must have bot_token and chat_id")
+        return false
+    end
+    
+    subscriber.active = subscriber.active ~= false -- Default to true
+    table.insert(subscribers, subscriber)
+    print("Subscriber added: " .. subscriber.type)
+    return true
+end
+
+-- Remove subscriber function
+function mod.remove_subscriber(index)
+    if index and index > 0 and index <= #subscribers then
+        table.remove(subscribers, index)
+        print("Subscriber removed at index: " .. index)
+        return true
+    end
+    return false
+end
+
+-- Get subscribers function
+function mod.get_subscribers()
+    return subscribers
+end
+
+-- Main function to broadcast summary to all subscribers
+function mod.broadcast(proposal, summary)
+    if not proposal or not summary then
+        print("Error: Proposal and summary are required")
+        return false
+    end
+
+    if #subscribers == 0 then
+        print("No subscribers to broadcast to")
+        return false
+    end
+
+    print("Broadcasting summary to " .. #subscribers .. " subscribers")
+
+    local success_count = 0
+    local total_attempts = 0
+
+    for i, subscriber in ipairs(subscribers) do
+        if subscriber.active then 
+            total_attempts = total_attempts + 1
+            local success = false
+            local error_msg = ""
+
+            if subscriber.type == "discord" then 
+                success, error_msg = send_discord_notification(proposal, summary, subscriber.webhook_url)
+            elseif subscriber.type == "telegram" then
+                success, error_msg = send_telegram_notification(proposal, summary, subscriber.bot_token, subscriber.chat_id)
+            else
+                error_msg = "Unknown subscriber type: " .. subscriber.type
+                print("Error: " .. error_msg)
+            end
+
+            if success then
+                success_count = success_count + 1
+                print("Successfully sent to " .. subscriber.type .. " subscriber")
+            else
+                print("Error sending notification to " .. subscriber.type .. ": " .. error_msg)
+            end
+        end 
+    end
+    
+    print("Broadcast complete. " .. success_count .. "/" .. total_attempts .. " notifications sent successfully")
+    return success_count > 0
+end
+
+
+
+
+
+
+
+
+
