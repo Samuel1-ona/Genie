@@ -2,8 +2,118 @@
 
 local mod = {}
 
-
+-- Enhanced data structures for governance platforms
+GovernancePlatforms = GovernancePlatforms or {}
 Proposals = Proposals or {}
+Organizations = Organizations or {}
+Tokens = Tokens or {}
+Contracts = Contracts or {}
+GovernorParameters = GovernorParameters or {}
+GovernorMetadata = GovernorMetadata or {}
+
+-- Governance Platform Structure
+local function create_governance_platform(data)
+    return {
+        id = data.id or "",
+        chainId = data.chainId or "",
+        contracts = data.contracts or {},
+        isIndexing = data.isIndexing or false,
+        isBehind = data.isBehind or false,
+        isPrimary = data.isPrimary or false,
+        kind = data.kind or "single",
+        name = data.name or "",
+        organization = data.organization or {},
+        proposalStats = data.proposalStats or {},
+        parameters = data.parameters or {},
+        quorum = data.quorum or 0,
+        slug = data.slug or "",
+        timelockId = data.timelockId or "",
+        tokenId = data.tokenId or "",
+        token = data.token or {},
+        type = data.type or "governoralpha",
+        delegatesCount = data.delegatesCount or 0,
+        delegatesVotesCount = data.delegatesVotesCount or 0,
+        tokenOwnersCount = data.tokenOwnersCount or 0,
+        metadata = data.metadata or {},
+        created_at = os.time(),
+        updated_at = os.time()
+    }
+end
+
+-- Enhanced Proposal Structure
+local function create_proposal(data)
+    return {
+        id = data.id or "",
+        title = data.title or "",
+        description = data.description or "",
+        content = data.content or "",
+        proposer = data.proposer or data.From or "",
+        platform = data.platform or "",
+        governance_platform_id = data.governance_platform_id or "",
+        status = data.status or "active",
+        type = data.type or "proposal",
+        url = data.url or "",
+        deadline = data.deadline or (os.time() + 86400 * 7), -- 7 days default
+        created_at = data.created_at or os.time(),
+        updated_at = data.updated_at or os.time(),
+        executed_at = data.executed_at or nil,
+        canceled_at = data.canceled_at or nil,
+        
+        -- Voting data
+        for_votes = data.for_votes or 0,
+        against_votes = data.against_votes or 0,
+        abstain_votes = data.abstain_votes or 0,
+        quorum = data.quorum or 0,
+        total_votes = data.total_votes or 0,
+        
+        -- Execution data
+        execution_time = data.execution_time or nil,
+        timelock_id = data.timelock_id or "",
+        
+        -- Metadata
+        metadata = data.metadata or {},
+        
+        -- Actions/Transactions
+        actions = data.actions or {},
+        
+        -- Tags and categories
+        tags = data.tags or {},
+        category = data.category or "general"
+    }
+end
+
+-- Organization Structure
+local function create_organization(data)
+    return {
+        id = data.id or "",
+        name = data.name or "",
+        description = data.description or "",
+        logo_url = data.logo_url or "",
+        website = data.website or "",
+        twitter = data.twitter or "",
+        discord = data.discord or "",
+        github = data.github or "",
+        governance_platforms = data.governance_platforms or {},
+        created_at = os.time(),
+        updated_at = os.time()
+    }
+end
+
+-- Token Structure
+local function create_token(data)
+    return {
+        id = data.id or "",
+        name = data.name or "",
+        symbol = data.symbol or "",
+        decimals = data.decimals or 18,
+        total_supply = data.total_supply or 0,
+        chain_id = data.chain_id or "",
+        contract_address = data.contract_address or "",
+        logo_url = data.logo_url or "",
+        created_at = os.time(),
+        updated_at = os.time()
+    }
+end
 
 -- Check for existing proposals , if the proposals exists it returns true if the proposals does not exists it returns false
 
@@ -28,40 +138,24 @@ function mod.exists(proposal_id)
 end
 
 
--- Add new proposals to the lists of proposals , that is by creating new proposals 
-
+-- Add new proposals to the lists of proposals (legacy function for backward compatibility)
 function mod.add(proposals)
+    if not proposals or not proposals.id then
+        print("Proposal data and ID are required")
+        return false
+    end
 
-    local add_proposal = proposals
-
-    -- check if the creator has a the token to create a proposal
+    -- check if the creator has the token to create a proposal
     if Balance[proposals.From] == nil or tonumber(Balance[proposals.From]) < 1 then
         print("Creator does not have the token to create a proposal: " .. proposals.From)
         return false
     end
 
-    -- check if the proposal is valid
-    if not proposals or proposals.id == nil then
-        print("Proposal is not a valid proposal")
-        return false
-    end
-
     -- validate if the proposals has been added before
     if mod.exists(proposals.id) then
+        print("Proposal already exists: " .. proposals.id)
         return false
     end
-
-    -- validate if it is the right type of proposals 
-
-    if not proposals or not proposals.id then 
-        print("Proposals is not a valid proposal")
-        return false
-    end
-
-    -- store the time  and  update the status 
-
-    add_proposal.created_at = os.time()
-    add_proposal.status = proposals.status or "active"
 
     -- validate if the proposal has a description and a title
     if not proposals.description or not proposals.title then
@@ -69,11 +163,8 @@ function mod.add(proposals)
         return false
     end
 
-    -- add the proposals to the list of proposals
-    table.insert(Proposals, add_proposal)
-    print("Proposal added successfully: " .. proposals.id)
-    return true
-   
+    -- Use the enhanced proposal creation function
+    return mod.add_proposal(proposals)
 end
 
 
@@ -396,6 +487,301 @@ end
     end
 
     
+
+    -- Governance Platform Management Functions
+function mod.add_governance_platform(platform_data)
+    if not platform_data or not platform_data.id then
+        print("Platform data and ID are required")
+        return false
+    end
+
+    -- Check if platform already exists
+    for i, platform in ipairs(GovernancePlatforms) do
+        if platform.id == platform_data.id then
+            print("Governance platform already exists: " .. platform_data.id)
+            return false
+        end
+    end
+
+    local new_platform = create_governance_platform(platform_data)
+    table.insert(GovernancePlatforms, new_platform)
+    print("Governance platform added successfully: " .. platform_data.id)
+    return true
+end
+
+function mod.get_governance_platform(platform_id)
+    if not platform_id then
+        print("Platform ID is required")
+        return nil
+    end
+
+    for i, platform in ipairs(GovernancePlatforms) do
+        if platform.id == platform_id then
+            return platform
+        end
+    end
+
+    print("Governance platform not found: " .. platform_id)
+    return nil
+end
+
+function mod.get_all_governance_platforms()
+    return GovernancePlatforms
+end
+
+function mod.update_governance_platform(platform_id, updated_data)
+    if not platform_id or not updated_data then
+        print("Platform ID and updated data are required")
+        return false
+    end
+
+    for i, platform in ipairs(GovernancePlatforms) do
+        if platform.id == platform_id then
+            for key, value in pairs(updated_data) do
+                if key ~= "id" then -- Don't allow changing ID
+                    platform[key] = value
+                end
+            end
+            platform.updated_at = os.time()
+            print("Governance platform updated successfully: " .. platform_id)
+            return true
+        end
+    end
+
+    print("Governance platform not found: " .. platform_id)
+    return false
+end
+
+-- Organization Management Functions
+function mod.add_organization(org_data)
+    if not org_data or not org_data.id then
+        print("Organization data and ID are required")
+        return false
+    end
+
+    for i, org in ipairs(Organizations) do
+        if org.id == org_data.id then
+            print("Organization already exists: " .. org_data.id)
+            return false
+        end
+    end
+
+    local new_org = create_organization(org_data)
+    table.insert(Organizations, new_org)
+    print("Organization added successfully: " .. org_data.id)
+    return true
+end
+
+function mod.get_organization(org_id)
+    if not org_id then
+        print("Organization ID is required")
+        return nil
+    end
+
+    for i, org in ipairs(Organizations) do
+        if org.id == org_id then
+            return org
+        end
+    end
+
+    print("Organization not found: " .. org_id)
+    return nil
+end
+
+-- Token Management Functions
+function mod.add_token(token_data)
+    if not token_data or not token_data.id then
+        print("Token data and ID are required")
+        return false
+    end
+
+    for i, token in ipairs(Tokens) do
+        if token.id == token_data.id then
+            print("Token already exists: " .. token_data.id)
+            return false
+        end
+    end
+
+    local new_token = create_token(token_data)
+    table.insert(Tokens, new_token)
+    print("Token added successfully: " .. token_data.id)
+    return true
+end
+
+function mod.get_token(token_id)
+    if not token_id then
+        print("Token ID is required")
+        return nil
+    end
+
+    for i, token in ipairs(Tokens) do
+        if token.id == token_id then
+            return token
+        end
+    end
+
+    print("Token not found: " .. token_id)
+    return nil
+end
+
+-- Enhanced Proposal Functions
+function mod.add_proposal(proposal_data)
+    if not proposal_data or not proposal_data.id then
+        print("Proposal data and ID are required")
+        return false
+    end
+
+    -- Check if proposal already exists
+    if mod.exists(proposal_data.id) then
+        print("Proposal already exists: " .. proposal_data.id)
+        return false
+    end
+
+    -- Validate governance platform if specified
+    if proposal_data.governance_platform_id then
+        local platform = mod.get_governance_platform(proposal_data.governance_platform_id)
+        if not platform then
+            print("Governance platform not found: " .. proposal_data.governance_platform_id)
+            return false
+        end
+    end
+
+    local new_proposal = create_proposal(proposal_data)
+    table.insert(Proposals, new_proposal)
+    print("Proposal added successfully: " .. proposal_data.id)
+    return true
+end
+
+function mod.get_proposals_by_platform(platform_id)
+    if not platform_id then
+        print("Platform ID is required")
+        return {}
+    end
+
+    local proposals = {}
+    for i, proposal in ipairs(Proposals) do
+        if proposal.governance_platform_id == platform_id then
+            table.insert(proposals, proposal)
+        end
+    end
+
+    if #proposals == 0 then
+        print("No proposals found for platform: " .. platform_id)
+    else
+        print("Found " .. #proposals .. " proposal(s) for platform: " .. platform_id)
+    end
+
+    return proposals
+end
+
+function mod.get_proposals_by_status_and_platform(status, platform_id)
+    if not status or not platform_id then
+        print("Status and platform ID are required")
+        return {}
+    end
+
+    local proposals = {}
+    for i, proposal in ipairs(Proposals) do
+        if proposal.status == status and proposal.governance_platform_id == platform_id then
+            table.insert(proposals, proposal)
+        end
+    end
+
+    if #proposals == 0 then
+        print("No proposals found with status '" .. status .. "' for platform: " .. platform_id)
+    else
+        print("Found " .. #proposals .. " proposal(s) with status '" .. status .. "' for platform: " .. platform_id)
+    end
+
+    return proposals
+end
+
+function mod.update_proposal_votes(proposal_id, votes_data)
+    if not proposal_id or not votes_data then
+        print("Proposal ID and votes data are required")
+        return false
+    end
+
+    local proposal = mod.get(proposal_id)
+    if not proposal then
+        print("Proposal not found: " .. proposal_id)
+        return false
+    end
+
+    -- Update voting data
+    if votes_data.for_votes then proposal.for_votes = votes_data.for_votes end
+    if votes_data.against_votes then proposal.against_votes = votes_data.against_votes end
+    if votes_data.abstain_votes then proposal.abstain_votes = votes_data.abstain_votes end
+    if votes_data.quorum then proposal.quorum = votes_data.quorum end
+    
+    -- Calculate total votes
+    proposal.total_votes = proposal.for_votes + proposal.against_votes + proposal.abstain_votes
+    
+    proposal.updated_at = os.time()
+    print("Proposal votes updated successfully: " .. proposal_id)
+    return true
+end
+
+function mod.execute_proposal(proposal_id)
+    if not proposal_id then
+        print("Proposal ID is required")
+        return false
+    end
+
+    local proposal = mod.get(proposal_id)
+    if not proposal then
+        print("Proposal not found: " .. proposal_id)
+        return false
+    end
+
+    if proposal.status == "executed" then
+        print("Proposal is already executed: " .. proposal_id)
+        return false
+    end
+
+    if proposal.status ~= "passed" then
+        print("Proposal must be passed before execution: " .. proposal_id)
+        return false
+    end
+
+    proposal.status = "executed"
+    proposal.executed_at = os.time()
+    proposal.updated_at = os.time()
+    print("Proposal executed successfully: " .. proposal_id)
+    return true
+end
+
+function mod.cancel_proposal(proposal_id)
+    if not proposal_id then
+        print("Proposal ID is required")
+        return false
+    end
+
+    local proposal = mod.get(proposal_id)
+    if not proposal then
+        print("Proposal not found: " .. proposal_id)
+        return false
+    end
+
+    if proposal.status == "canceled" then
+        print("Proposal is already canceled: " .. proposal_id)
+        return false
+    end
+
+    if proposal.status == "executed" then
+        print("Cannot cancel executed proposal: " .. proposal_id)
+        return false
+    end
+
+    proposal.status = "canceled"
+    proposal.canceled_at = os.time()
+    proposal.updated_at = os.time()
+    print("Proposal canceled successfully: " .. proposal_id)
+    return true
+end
+
+
+
 
     return mod
    
