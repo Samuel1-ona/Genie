@@ -1,7 +1,89 @@
 local mod = {}
 
 -- Import the proposals module
-local proposals = require("lib.proposals")
+local proposals = require("proposals")
+
+-- Global state management for platform adapter
+local ScrapingHistory = {}
+local ApiRateLimits = {}
+local CachedData = {}
+local ScrapingStatus = {}
+local ApiCallCounts = {}
+local ErrorLogs = {}
+
+-- Internal function to update global state
+local function update_scraping_state(governance_id, success, error_msg)
+    local current_time = os.time()
+    
+    -- Update scraping history
+    if not ScrapingHistory[governance_id] then
+        ScrapingHistory[governance_id] = {}
+    end
+    
+    table.insert(ScrapingHistory[governance_id], {
+        timestamp = current_time,
+        success = success,
+        error = error_msg
+    })
+    
+    -- Keep only last 10 entries per governance ID
+    if #ScrapingHistory[governance_id] > 10 then
+        table.remove(ScrapingHistory[governance_id], 1)
+    end
+    
+    -- Update scraping status
+    if not ScrapingStatus[governance_id] then
+        ScrapingStatus[governance_id] = {}
+    end
+    
+    ScrapingStatus[governance_id].last_scraped = current_time
+    ScrapingStatus[governance_id].scrape_count = (ScrapingStatus[governance_id].scrape_count or 0) + 1
+    
+    -- Update API call counts
+    ApiCallCounts[governance_id] = (ApiCallCounts[governance_id] or 0) + 1
+    
+    -- Log errors
+    if error_msg then
+        if not ErrorLogs[governance_id] then
+            ErrorLogs[governance_id] = {}
+        end
+        
+        table.insert(ErrorLogs[governance_id], {
+            timestamp = current_time,
+            error = error_msg
+        })
+        
+        -- Keep only last 5 errors per governance ID
+        if #ErrorLogs[governance_id] > 5 then
+            table.remove(ErrorLogs[governance_id], 1)
+        end
+    end
+end
+
+-- Internal function to check rate limits
+local function check_rate_limit(governance_id)
+    local current_time = os.time()
+    local rate_limit = ApiRateLimits[governance_id]
+    
+    if rate_limit and rate_limit.is_limited then
+        if current_time - rate_limit.limited_at < 60 then -- 1 minute cooldown
+            return false, "Rate limited. Try again in " .. (60 - (current_time - rate_limit.limited_at)) .. " seconds"
+        else
+            -- Reset rate limit
+            ApiRateLimits[governance_id] = nil
+        end
+    end
+    
+    return true
+end
+
+-- Internal function to set rate limit
+local function set_rate_limit(governance_id)
+    ApiRateLimits[governance_id] = {
+        is_limited = true,
+        limited_at = os.time()
+    }
+end
 
 -- Load environment variables directly from .env file
 local function load_env_from_file()
@@ -105,7 +187,32 @@ end
 function mod.fetch_tally_proposals(governance_id, platform_config)
     if not governance_id then
         print("Governance ID is required")
+        update_scraping_state(governance_id, false, "Governance ID is required")
         return { success = false, error = "Governance ID is required" }
+    end
+
+    -- Check rate limits
+    local can_proceed, rate_limit_msg = check_rate_limit(governance_id)
+    if not can_proceed then
+        print("Rate limited: " .. rate_limit_msg)
+        update_scraping_state(governance_id, false, rate_limit_msg)
+        return { success = false, error = rate_limit_msg, rate_limited = true }
+    end
+
+    -- Check cache first
+    if CachedData[governance_id] and CachedData[governance_id].proposals then
+        local cache_age = os.time() - CachedData[governance_id].cached_at
+        if cache_age < 300 then -- 5 minutes cache
+            print("Returning cached proposals for governance ID: " .. governance_id)
+            update_scraping_state(governance_id, true, nil)
+            return {
+                success = true,
+                governance_id = governance_id,
+                cached = true,
+                cache_age = cache_age,
+                proposals = CachedData[governance_id].proposals
+            }
+        end
     end
 
     print("Fetching proposals from Tally platform for governance ID: " .. governance_id)
@@ -192,9 +299,18 @@ function mod.fetch_tally_proposals(governance_id, platform_config)
                 end
             end
             
+            -- Cache the results
+            CachedData[governance_id] = {
+                proposals = scraped_proposals,
+                cached_at = os.time()
+            }
+            
             print("Data scraping completed:")
             print("  - Successfully added: " .. success_count .. " proposals")
             print("  - Failed to add: " .. error_count .. " proposals")
+            
+            -- Update global state
+            update_scraping_state(governance_id, true, nil)
             
             return {
                 success = true,
@@ -203,13 +319,16 @@ function mod.fetch_tally_proposals(governance_id, platform_config)
                 total_proposals = #data.proposals,
                 success_count = success_count,
                 error_count = error_count,
-                proposals = scraped_proposals
+                proposals = scraped_proposals,
+                cached = false
             }
         else
-            print("No proposals found in API response")
+            local error_msg = "No proposals found in API response"
+            print(error_msg)
+            update_scraping_state(governance_id, false, error_msg)
             return {
                 success = false,
-                error = "No proposals found in API response",
+                error = error_msg,
                 governance_id = governance_id
             }
         end
@@ -223,9 +342,16 @@ function mod.fetch_tally_proposals(governance_id, platform_config)
                     error_msg = error_msg .. " - " .. error_data.error
                 end
             end
+            
+            -- Check for rate limiting
+            if response.status == 429 then
+                set_rate_limit(governance_id)
+                error_msg = error_msg .. " (Rate limited)"
+            end
         end
         
         print(error_msg)
+        update_scraping_state(governance_id, false, error_msg)
         return {
             success = false,
             error = error_msg,
@@ -256,7 +382,32 @@ end
 function mod.fetch_governance_platform(governance_id)
     if not governance_id then
         print("Governance ID is required")
+        update_scraping_state(governance_id, false, "Governance ID is required")
         return { success = false, error = "Governance ID is required" }
+    end
+
+    -- Check rate limits
+    local can_proceed, rate_limit_msg = check_rate_limit(governance_id)
+    if not can_proceed then
+        print("Rate limited: " .. rate_limit_msg)
+        update_scraping_state(governance_id, false, rate_limit_msg)
+        return { success = false, error = rate_limit_msg, rate_limited = true }
+    end
+
+    -- Check cache first
+    if CachedData[governance_id] and CachedData[governance_id].platform then
+        local cache_age = os.time() - CachedData[governance_id].platform_cached_at
+        if cache_age < 600 then -- 10 minutes cache for platform data
+            print("Returning cached platform data for governance ID: " .. governance_id)
+            update_scraping_state(governance_id, true, nil)
+            return {
+                success = true,
+                governance_id = governance_id,
+                cached = true,
+                cache_age = cache_age,
+                platform = CachedData[governance_id].platform
+            }
+        end
     end
 
     print("Fetching governance platform data for ID: " .. governance_id)
@@ -311,25 +462,38 @@ function mod.fetch_governance_platform(governance_id)
             local success = proposals.add_governance_platform(transformed_platform)
             
             if success then
+                -- Cache the platform data
+                if not CachedData[governance_id] then
+                    CachedData[governance_id] = {}
+                end
+                CachedData[governance_id].platform = transformed_platform
+                CachedData[governance_id].platform_cached_at = os.time()
+                
                 print("Governance platform added successfully: " .. governance_id)
+                update_scraping_state(governance_id, true, nil)
                 return {
                     success = true,
                     governance_id = governance_id,
-                    platform = transformed_platform
+                    platform = transformed_platform,
+                    cached = false
                 }
             else
-                print("Failed to add governance platform: " .. governance_id)
+                local error_msg = "Failed to add governance platform"
+                print(error_msg .. ": " .. governance_id)
+                update_scraping_state(governance_id, false, error_msg)
                 return {
                     success = false,
-                    error = "Failed to add governance platform",
+                    error = error_msg,
                     governance_id = governance_id
                 }
             end
         else
-            print("No governance data found in API response")
+            local error_msg = "No governance data found in API response"
+            print(error_msg)
+            update_scraping_state(governance_id, false, error_msg)
             return {
                 success = false,
-                error = "No governance data found in API response",
+                error = error_msg,
                 governance_id = governance_id
             }
         end
@@ -337,9 +501,16 @@ function mod.fetch_governance_platform(governance_id)
         local error_msg = "API request failed"
         if response then
             error_msg = error_msg .. " (Status: " .. response.status .. ")"
+            
+            -- Check for rate limiting
+            if response.status == 429 then
+                set_rate_limit(governance_id)
+                error_msg = error_msg .. " (Rate limited)"
+            end
         end
         
         print(error_msg)
+        update_scraping_state(governance_id, false, error_msg)
         return {
             success = false,
             error = error_msg,
@@ -385,7 +556,25 @@ function mod.scrape_governance_data(governance_id, platform_config)
     }
 end
 
--- Utility function to get scraping status
+-- Global state management functions
+function mod.get_scraping_history(governance_id)
+    if governance_id then
+        return ScrapingHistory[governance_id] or {}
+    end
+    return ScrapingHistory
+end
+
+function mod.get_api_rate_limits()
+    return ApiRateLimits
+end
+
+function mod.get_cached_data(governance_id)
+    if governance_id then
+        return CachedData[governance_id]
+    end
+    return CachedData
+end
+
 function mod.get_scraping_status(governance_id)
     if not governance_id then
         return { success = false, error = "Governance ID is required" }
@@ -394,14 +583,57 @@ function mod.get_scraping_status(governance_id)
     local platform = proposals.get_governance_platform(governance_id)
     local platform_proposals = proposals.get_proposals_by_platform(governance_id)
     
+    -- Include global state information
+    local global_status = ScrapingStatus[governance_id] or {}
+    local api_calls = ApiCallCounts[governance_id] or 0
+    local last_error = ErrorLogs[governance_id] and ErrorLogs[governance_id][#ErrorLogs[governance_id]] or nil
+    
     return {
         success = true,
         governance_id = governance_id,
         platform_exists = platform ~= nil,
         platform = platform,
         proposals_count = #platform_proposals,
-        proposals = platform_proposals
+        proposals = platform_proposals,
+        -- Global state info
+        last_scraped = global_status.last_scraped,
+        scrape_count = global_status.scrape_count or 0,
+        api_calls_made = api_calls,
+        last_error = last_error,
+        is_rate_limited = ApiRateLimits[governance_id] and ApiRateLimits[governance_id].is_limited or false,
+        cache_hit = CachedData[governance_id] ~= nil
     }
+end
+
+function mod.get_api_call_counts()
+    return ApiCallCounts
+end
+
+function mod.get_error_logs(governance_id)
+    if governance_id then
+        return ErrorLogs[governance_id] or {}
+    end
+    return ErrorLogs
+end
+
+function mod.clear_cache(governance_id)
+    if governance_id then
+        CachedData[governance_id] = nil
+        print("Cache cleared for governance ID: " .. governance_id)
+    else
+        CachedData = {}
+        print("All cache cleared")
+    end
+end
+
+function mod.reset_rate_limits(governance_id)
+    if governance_id then
+        ApiRateLimits[governance_id] = nil
+        print("Rate limits reset for governance ID: " .. governance_id)
+    else
+        ApiRateLimits = {}
+        print("All rate limits reset")
+    end
 end
 
 return mod
