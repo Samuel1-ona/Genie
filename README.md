@@ -16,6 +16,8 @@
 
 ---
 
+## ao.link: https://www.ao.link/#/message/ebdrXtL_2dX7N3IHa6Du5apC_cxS7vxpPLKe-N-0ApM
+
 ## Project Overview
 
 **Genie-Proposal-Summarizer** is a decentralized governance data management system built on the Arweave Operating System (AO). The system provides comprehensive functionality for scraping, managing, and notifying about governance proposals from various DAO platforms.
