@@ -1,7 +1,7 @@
 local mod = {}
 
 -- Import the proposals module
-local proposals = require("proposals")
+local proposals = require "lib.proposals"
 
 -- Global state management for platform adapter
 local ScrapingHistory = {}
