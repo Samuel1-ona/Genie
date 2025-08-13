@@ -2,14 +2,14 @@
   "name": "genie",
   "type": "module",
   "scripts": {
-    "counter:deploy": "cd ./ao/counter && ./scripts/deploy.sh",
-    "counter:test": "cd ./ao/counter && ./scripts/test.sh",
-    "counter:build": "cd ./ao/counter && ./scripts/build.sh",
-    "counter:inject": "STATE_FILE=./ao/counter/state-processes.yaml node ./utils/inject-process.js",
+    "genie:deploy": "cd ./ao/genie && ./scripts/deploy.sh",
+    "genie:test": "cd ./ao/genie && ./scripts/test.sh",
+    "genie:build": "cd ./ao/genie && ./scripts/build.sh",
+    "genie:inject": "STATE_FILE=./ao/genie/state-processes.yaml node ./utils/inject-process.js",
     "frontend:dev": "cd ./apps/frontend && npm run dev",
     "frontend:build": "cd ./apps/frontend && npm run build",
     "frontend:deploy": "cd ./apps/frontend && npm run deploy",
-    "postinstall": "chmod +x ./ao/counter/scripts/* && chmod +x ./apps/frontend/scripts/*"
+    "postinstall": "chmod +x ./ao/genie/scripts/* && chmod +x ./apps/frontend/scripts/*"
   },
   "devDependencies": {
     "@types/bun": "latest",
