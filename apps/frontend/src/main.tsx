@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ArweaveWalletKit } from "arweave-wallet-kit";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 			}}
 		>
 			<QueryClientProvider client={queryClient}>
-				<App />
+				<BrowserRouter>
+					<App />
+				</BrowserRouter>
 			</QueryClientProvider>
 		</ArweaveWalletKit>
 	</React.StrictMode>,

@@ -1,0 +1,27 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+You are a senior frontend engineer. We are building “Genie-Proposal-Summarizer” UI using:
+
+- Vite + React + TypeScript
+- Tailwind CSS + shadcn/ui + lucide-react
+- React Router
+- TanStack Query (server state) + Zustand (UI state)
+- TanStack Table (data tables) + Recharts (charts)
+- dayjs (time)
+- Strict TypeScript, modular architecture, clean folders, dark theme first.
+
+General rules:
+
+- Use functional components + hooks.
+- Co-locate files by domain (features/\*).
+- Create small, reusable components for chips, skeletons, empty states, dialogs.
+- Add loading/skeleton states and error boundaries.
+- Africa/Lagos timezone in time helpers; show both absolute and relative times.
+- Use environment variables via import.meta.env (VITE\_\*).
+- AO calls: implement a typed aoSend() wrapper with retries, timeouts, and tag support.
+
+Deliver production-ready code. Document key parts with concise comments. Write minimal but meaningful tests when helpful.
