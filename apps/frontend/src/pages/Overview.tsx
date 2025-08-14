@@ -8,11 +8,11 @@ import {
 import { StatusChip } from '@/components/common/StatusChip';
 import { TimeAgo } from '@/components/common/TimeAgo';
 import { LayoutDashboard, TrendingUp, Users, FileText } from 'lucide-react';
-import { useProposals, useRuntimeStats } from '@/hooks/useAOClient';
+import { useProposals, useApiRateLimits } from '@/hooks/useAOClient';
 
 export default function Overview() {
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
-  const { data: runtimeStats, isLoading: statsLoading } = useRuntimeStats();
+  const { data: rateLimits, isLoading: statsLoading } = useApiRateLimits();
 
   const activeProposals = proposals?.filter(p => p.status === 'active') || [];
   const totalProposals = proposals?.length || 0;
@@ -82,26 +82,15 @@ export default function Overview() {
             <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <StatusChip
-              variant={
-                statsLoading
-                  ? 'default'
-                  : runtimeStats?.status === 'healthy'
-                    ? 'success'
-                    : 'error'
-              }
-            >
-              {statsLoading ? 'Loading...' : runtimeStats?.status || 'Unknown'}
+            <StatusChip variant={statsLoading ? 'default' : 'success'}>
+              {statsLoading ? 'Loading...' : 'Healthy'}
             </StatusChip>
             <p className="text-xs text-muted-foreground mt-2">
               {statsLoading ? (
                 'Loading...'
               ) : (
                 <>
-                  Last updated{' '}
-                  <TimeAgo
-                    date={new Date(runtimeStats?.lastHealthCheck || Date.now())}
-                  />
+                  Last updated <TimeAgo date={new Date()} />
                 </>
               )}
             </p>

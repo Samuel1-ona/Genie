@@ -26,6 +26,28 @@ export function useProposals() {
   });
 }
 
+// Hook for searching proposals
+export function useSearchProposals(query: string) {
+  return useQuery({
+    queryKey: [...aoQueryKeys.proposals(), 'search', query],
+    queryFn: () => aoClient.searchProposals(query),
+    enabled: !!query && query.length > 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Hook for getting proposals by platform
+export function useProposalsByPlatform(platformId: string) {
+  return useQuery({
+    queryKey: [...aoQueryKeys.proposals(), 'platform', platformId],
+    queryFn: () => aoClient.getProposalsByPlatform(platformId),
+    enabled: !!platformId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
 // Hook for getting a single proposal
 export function useProposal(id: string) {
   return useQuery({
@@ -37,11 +59,21 @@ export function useProposal(id: string) {
   });
 }
 
-// Hook for getting runtime stats
-export function useRuntimeStats() {
+// Hook for getting governance platforms
+export function useGovernancePlatforms() {
   return useQuery({
-    queryKey: aoQueryKeys.runtimeStats(),
-    queryFn: () => aoClient.getRuntimeStats(),
+    queryKey: aoQueryKeys.runtimeStats(), // Reusing the key for now
+    queryFn: () => aoClient.getGovernancePlatforms(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// Hook for getting API rate limits
+export function useApiRateLimits() {
+  return useQuery({
+    queryKey: aoQueryKeys.runtimeStats(), // Reusing the key for now
+    queryFn: () => aoClient.getApiRateLimits(),
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
@@ -53,6 +85,26 @@ export function useScrapeHistory() {
   return useQuery({
     queryKey: aoQueryKeys.scrapeHistory(),
     queryFn: () => aoClient.getScrapeHistory(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Hook for getting subscribers
+export function useSubscribers() {
+  return useQuery({
+    queryKey: aoQueryKeys.scrapeHistory(), // Reusing the key for now
+    queryFn: () => aoClient.getSubscribers(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// Hook for getting balances
+export function useBalances() {
+  return useQuery({
+    queryKey: aoQueryKeys.scrapeHistory(), // Reusing the key for now
+    queryFn: () => aoClient.getAllBalances(),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -70,50 +122,70 @@ export function useHealthCheck() {
 }
 
 // Mutation hooks
-export function useCreateProposal() {
+export function useAddSubscriber() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (proposal: Partial<Proposal>) =>
-      aoClient.createProposal(proposal),
+    mutationFn: (subscriber: any) => aoClient.addSubscriber(subscriber),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
+      queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },
   });
 }
 
-export function useUpdateProposal() {
+export function useBroadcastNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Proposal> }) =>
-      aoClient.updateProposal(id, updates),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
-      queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposal(id) });
+    mutationFn: (message: any) => aoClient.broadcastNotification(message),
+    onSuccess: () => {
+      // No cache invalidation needed for notifications
     },
   });
 }
 
-export function useDeleteProposal() {
+export function useScrapeGovernance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => aoClient.deleteProposal(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
-      queryClient.removeQueries({ queryKey: aoQueryKeys.proposal(id) });
-    },
-  });
-}
-
-export function useTriggerScrape() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (platformId: string) => aoClient.triggerScrape(platformId),
+    mutationFn: (platformId: string) => aoClient.scrapeGovernance(platformId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() });
+      queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
+    },
+  });
+}
+
+export function useClearCache() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => aoClient.clearCache(),
+    onSuccess: () => {
+      // Invalidate all queries
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
+export function useResetRateLimits() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => aoClient.resetRateLimits(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aoQueryKeys.runtimeStats() });
+    },
+  });
+}
+
+export function useAddBalance() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (balance: any) => aoClient.addBalance(balance),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },
   });
 }

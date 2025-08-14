@@ -5,7 +5,6 @@
 
 import { env } from '@/config/env';
 import type { AOMessage, ApiResponse, ApiError } from '@/types';
-import { handleAORequest } from '@/api/ao';
 
 // Generate unique request ID
 function generateRequestId(): string {
@@ -84,11 +83,27 @@ export async function aoSend<T>(
         },
       });
 
-      // For now, use the mock API handler
-      // TODO: Replace with actual API endpoint when implemented
-      const result: ApiResponse<T> = await handleAORequest(message);
+      const response = await fetch('/api/ao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId,
+        },
+        body: JSON.stringify({
+          action: message.Action,
+          data: message.Data ? JSON.parse(message.Data) : undefined,
+          tags: message.Tags,
+        }),
+        signal: controller.signal,
+      });
 
-      if (!result.success) {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.ok) {
         throw new Error(result.error || 'AO process returned an error');
       }
 
@@ -126,30 +141,66 @@ export async function aoSend<T>(
 // Convenience functions for common AO operations
 export const aoClient = {
   // Get proposals
-  getProposals: () => aoSend<any[]>('GetProposals'),
+  getProposals: () => aoSend<any[]>('GetAllProposals'),
 
   // Get proposal by ID
   getProposal: (id: string) => aoSend<any>('GetProposal', { id }),
 
-  // Create proposal
-  createProposal: (proposal: any) => aoSend<any>('CreateProposal', proposal),
+  // Search proposals
+  searchProposals: (query: string) =>
+    aoSend<any[]>('SearchProposals', { query }),
 
-  // Update proposal
-  updateProposal: (id: string, updates: any) =>
-    aoSend<any>('UpdateProposal', { id, ...updates }),
+  // Get proposals by platform
+  getProposalsByPlatform: (platformId: string) =>
+    aoSend<any[]>('GetProposalsByPlatform', { platformId }),
 
-  // Delete proposal
-  deleteProposal: (id: string) => aoSend<void>('DeleteProposal', { id }),
+  // Get governance platforms
+  getGovernancePlatforms: () => aoSend<any[]>('GetGovernancePlatforms'),
 
-  // Get runtime stats
-  getRuntimeStats: () => aoSend<any>('GetRuntimeStats'),
+  // Scrape governance
+  scrapeGovernance: (platformId: string) =>
+    aoSend<any>('ScrapeGovernance', { platformId }),
+
+  // Get subscribers
+  getSubscribers: () => aoSend<any[]>('GetSubscribers'),
+
+  // Add subscriber
+  addSubscriber: (subscriber: any) => aoSend<any>('AddSubscriber', subscriber),
+
+  // Broadcast notification
+  broadcastNotification: (message: any) =>
+    aoSend<any>('BroadcastNotification', message),
 
   // Get scrape history
-  getScrapeHistory: () => aoSend<any[]>('GetScrapeHistory'),
+  getScrapeHistory: () => aoSend<any[]>('GetScrapingHistory'),
 
-  // Trigger scrape
-  triggerScrape: (platformId: string) =>
-    aoSend<any>('TriggerScrape', { platformId }),
+  // Get API rate limits
+  getApiRateLimits: () => aoSend<any>('GetApiRateLimits'),
+
+  // Get cached data
+  getCachedData: () => aoSend<any>('GetCachedData'),
+
+  // Get API call counts
+  getApiCallCounts: () => aoSend<any>('GetApiCallCounts'),
+
+  // Get error logs
+  getErrorLogs: () => aoSend<any[]>('GetErrorLogs'),
+
+  // Clear cache
+  clearCache: () => aoSend<any>('ClearCache'),
+
+  // Reset rate limits
+  resetRateLimits: () => aoSend<any>('ResetRateLimits'),
+
+  // Get all balances
+  getAllBalances: () => aoSend<any[]>('GetAllBalances'),
+
+  // Get balance
+  getBalance: (walletAddress: string, tokenAddress?: string) =>
+    aoSend<any>('GetBalance', { walletAddress, tokenAddress }),
+
+  // Add balance
+  addBalance: (balance: any) => aoSend<any>('AddBalance', balance),
 
   // Health check
   healthCheck: () => aoSend<{ status: string }>('HealthCheck'),
