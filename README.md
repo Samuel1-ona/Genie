@@ -24,8 +24,9 @@
 
 ### Key Features
 - **Governance Data Scraping**: Automated data collection from Tally.xyz API
+- **AI-Powered Analysis**: APUS AI integration for proposal summarization and sentiment analysis
 - **Proposal Management**: Complete CRUD operations for governance proposals
-- **Notification System**: Discord and Telegram integration
+- **Notification System**: Discord and Telegram integration with AI-enhanced content
 - **State Management**: Comprehensive tracking and caching
 - **Balance Management**: Token-based proposal creation system
 - **Rate Limiting**: Intelligent API call management
@@ -61,6 +62,14 @@
 │  │ Tally.xyz    │  │ Discord      │  │ Telegram Bot API       │ │
 │  │ API          │  │ Webhooks     │  │                        │ │
 │  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │                    AI Integration                           │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │ │
+│  │  │ APUS AI      │  │ Proposal     │  │ Sentiment        │   │ │
+│  │  │ Inference    │  │ Summarization│  │ Analysis         │   │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────────┘   │ │
+│  └─────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,23 +102,35 @@ graph TB
         I[Telegram Bot API]
     end
     
+    subgraph "AI Services"
+        J[APUS AI Inference]
+        K[Proposal Summarization]
+        L[Sentiment Analysis]
+    end
+    
     E --> G
     F --> H
     F --> I
+    E --> J
+    J --> K
+    J --> L
     
     subgraph "Data Storage"
-        J[Proposals Data]
-        K[Governance Platforms]
-        L[Subscribers]
-        M[Scraping History]
-        N[Cache Data]
+        M[Proposals Data]
+        N[Governance Platforms]
+        O[Subscribers]
+        P[Scraping History]
+        Q[Cache Data]
+        R[AI Analysis Results]
     end
     
-    D --> J
-    D --> K
-    F --> L
-    E --> M
-    E --> N
+    D --> M
+    D --> N
+    F --> O
+    E --> P
+    E --> Q
+    K --> R
+    L --> R
 ```
 
 ### Module Dependencies
@@ -128,6 +149,7 @@ graph LR
     
     F[External APIs] --> C
     G[Webhooks] --> D
+    H[APUS AI] --> C
 ```
 
 ---
@@ -295,13 +317,15 @@ graph LR
 
 ### 4. Notification System Module
 
-**Purpose**: Multi-platform notification delivery
+**Purpose**: Multi-platform notification delivery with AI-enhanced content
 
 **Key Features**:
 - Discord webhook integration
 - Telegram bot integration
 - Subscriber management
 - Message formatting
+- AI-powered content summarization
+- Sentiment-based notification prioritization
 
 **Architecture**:
 ```
@@ -321,6 +345,8 @@ graph LR
 │  │  • send_discord_notification()                          │ │
 │  │  • send_telegram_notification()                         │ │
 │  │  • broadcast()                                          │ │
+│  │  • generate_ai_summary()                                │ │
+│  │  • analyze_sentiment()                                  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │           │                                                 │
 │           ▼                                                 │
@@ -386,27 +412,30 @@ sequenceDiagram
     Main.lua-->>User: ProposalRetrieved response
 ```
 
-### 3. Notification Broadcasting Flow
+### 3. AI-Enhanced Notification Broadcasting Flow
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Main.lua
     participant NotificationSystem
+    participant APUSAI
     participant Discord
     participant Telegram
 
     User->>Main.lua: BroadcastNotification Action
     Main.lua->>NotificationSystem: broadcast()
     NotificationSystem->>NotificationSystem: Get subscribers
+    NotificationSystem->>APUSAI: analyze_proposal_content()
+    APUSAI-->>NotificationSystem: AI summary & sentiment
     loop For each subscriber
         alt Discord subscriber
-            NotificationSystem->>NotificationSystem: format_discord_message()
-            NotificationSystem->>Discord: Send webhook
+            NotificationSystem->>NotificationSystem: format_discord_message_with_ai()
+            NotificationSystem->>Discord: Send enhanced webhook
             Discord-->>NotificationSystem: Success/failure
         else Telegram subscriber
-            NotificationSystem->>NotificationSystem: format_telegram_message()
-            NotificationSystem->>Telegram: Send message
+            NotificationSystem->>NotificationSystem: format_telegram_message_with_ai()
+            NotificationSystem->>Telegram: Send enhanced message
             Telegram-->>NotificationSystem: Success/failure
         end
     end
@@ -469,12 +498,43 @@ sequenceDiagram
 }
 ```
 
+### APUS AI Integration
+
+**AI Analysis Features**:
+- **Proposal Summarization**: Automatically generate concise summaries of lengthy proposals
+- **Sentiment Analysis**: Analyze proposal sentiment and community reaction
+- **Content Classification**: Categorize proposals by type and importance
+- **Trend Analysis**: Identify patterns in governance proposals over time
+
+**Integration Pattern**:
+```lua
+-- APUS AI inference call
+local ai_result = ApusAI.infer({
+    model = "governance-analyzer",
+    input = {
+        proposal_content = proposal.description,
+        proposal_title = proposal.title,
+        voting_data = proposal.votes
+    }
+})
+
+-- Store AI analysis results
+proposal.ai_analysis = {
+    summary = ai_result.summary,
+    sentiment = ai_result.sentiment,
+    importance_score = ai_result.importance,
+    category = ai_result.category
+}
+```
+
 ### Telegram Integration
 
-**Message Format**:
+**Enhanced Message Format with AI**:
 ```markdown
-**Proposal Title**
-Proposal Summary
+**🤖 AI Analysis: [Proposal Title]**
+📊 **Sentiment:** Positive (85% confidence)
+⭐ **Importance:** High Priority
+📝 **Summary:** AI-generated concise summary
 
 **Deadline:** January 1, 2022
 **Proposer:** 0x1234...5678
@@ -508,6 +568,11 @@ Proposals = {}               -- All proposals
 GovernancePlatforms = {}     -- Governance platforms
 Organizations = {}           -- Organizations
 Tokens = {}                  -- Tokens
+
+-- AI Analysis State
+AIResults = {}               -- AI analysis results
+SentimentCache = {}          -- Cached sentiment analysis
+SummaryCache = {}            -- Cached proposal summaries
 ```
 
 ### State Persistence
@@ -552,8 +617,14 @@ Handlers.add("handler_name",
 
 #### Notification Actions
 - `AddSubscriber` - Add notification subscriber
-- `BroadcastNotification` - Broadcast notification
+- `BroadcastNotification` - Broadcast notification with AI enhancement
 - `GetSubscribers` - Get all subscribers
+
+#### AI Analysis Actions
+- `AnalyzeProposal` - Analyze proposal with APUS AI
+- `GetAIAnalysis` - Get AI analysis results
+- `SummarizeProposal` - Generate AI summary
+- `AnalyzeSentiment` - Analyze proposal sentiment
 
 #### State Management Actions
 - `GetScrapingHistory` - Get scraping history
@@ -657,21 +728,37 @@ ao.send({
 })
 ```
 
-### 4. Broadcast Notification
+### 4. AI-Enhanced Broadcast Notification
 ```lua
 ao.send({
     Target = "your-agent-id",
     Action = "BroadcastNotification",
-    Tags = { Summary = "New proposal added" },
+    Tags = { Summary = "New proposal added with AI analysis" },
     Data = '{
         "id": "proposal-123",
         "title": "New Feature Proposal",
-        "url": "https://tally.xyz/proposal/123"
+        "description": "Long proposal description...",
+        "url": "https://tally.xyz/proposal/123",
+        "enable_ai_analysis": true
     }'
 })
 ```
 
-### 5. Get System Info
+### 5. Analyze Proposal with APUS AI
+```lua
+ao.send({
+    Target = "your-agent-id",
+    Action = "AnalyzeProposal",
+    Data = '{
+        "id": "proposal-123",
+        "content": "Proposal content for analysis",
+        "title": "Proposal title",
+        "voting_data": {"for": 1000, "against": 100}
+    }'
+})
+```
+
+### 6. Get System Info
 ```lua
 ao.send({
     Target = "your-agent-id",
@@ -749,17 +836,22 @@ The Genie-Proposal-Summarizer AO agent provides a comprehensive solution for gov
 
 ### Key Strengths
 - **Comprehensive Coverage**: Full governance lifecycle management
-- **Multi-Platform Support**: Discord and Telegram integration
+- **AI-Powered Analysis**: APUS AI integration for intelligent proposal processing
+- **Multi-Platform Support**: Discord and Telegram integration with AI enhancement
 - **Robust Error Handling**: Extensive error tracking and recovery
 - **Scalable Architecture**: Modular design for easy extension
 - **AO Native**: Built specifically for the Arweave Operating System
+- **Intelligent Notifications**: AI-enhanced content for better user engagement
 
 ### Future Enhancements
 - **Additional Platforms**: Support for more governance platforms
-- **Advanced Analytics**: Proposal analytics and insights
-- **Automated Actions**: Trigger actions based on proposal states
+- **Advanced Analytics**: Proposal analytics and insights with AI
+- **Automated Actions**: Trigger actions based on proposal states and AI analysis
 - **Multi-Chain Support**: Cross-chain governance data
-- **Advanced Notifications**: Custom notification templates
+- **Advanced Notifications**: Custom notification templates with AI enhancement
+- **Predictive Analytics**: AI-powered proposal outcome predictions
+- **Smart Filtering**: AI-based proposal relevance scoring
+- **Automated Reporting**: AI-generated governance reports and insights
 
 ---
 
