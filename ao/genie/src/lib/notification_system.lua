@@ -26,20 +26,19 @@ end
 local notifications = {
     discord = {
         embed = {
-            title = "",
-            description = "",
-            color = "",
+            title = "📋 {title}",
+            description = "📝 {description}",
+            color = "0x00ff00",
+            url = "{url}",
             fields = {
-                { name = "", value = "", inline = true or false},
-                { name = "", value = "", inline = true or false},
-                { name = "", value = "", inline = true or false}
+                { name = "⏰ Deadline", value = "{deadline}", inline = true},
+                { name = "👤 Proposer", value = "{proposer}", inline = true},
+                { name = "🏛️ Platform", value = "{platform}", inline = true}
             }
-        }, 
-        url = "{}"
+        }
     },
     telegram = {
-        message = "",
-        url = "{}"
+        message = "📋 *{title}*\n\n📝 {summary}\n\n⏰ Deadline: {deadline}\n👤 Proposer: {proposer}\n🏛️ Platform: {platform}\n🔗 [View Proposal]({url})"
     }
 }
 
@@ -48,11 +47,11 @@ local function format_discord_message(proposal, summary)
     local embed = message.embed
 
     local formatted_embed = {
-        title = embed.title:gsub("{title}", proposal.title or "Unknown"),
-        description = embed.description:gsub("{description}", summary or "No summary available"),
+        title = embed.title:gsub("{title}", (proposal.title or "Unknown"):gsub("%%", "%%%%")),
+        description = embed.description:gsub("{description}", (summary or "No summary available"):gsub("%%", "%%%%")),
         color = embed.color,
         fields = {},
-        url = embed.url:gsub("{url}", proposal.url or "")
+        url = embed.url:gsub("{url}", (proposal.url or ""):gsub("%%", "%%%%"))
     }
     
     for i, field in ipairs(embed.fields) do 
@@ -82,17 +81,14 @@ local function format_telegram_message(proposal, summary)
     local template = notifications.telegram.message
     
     local formatted_text = template
-        :gsub("{title}", proposal.title or "Unknown")
-        :gsub("{summary}", summary or "No summary available")
+        :gsub("{title}", (proposal.title or "Unknown"):gsub("%%", "%%%%"))
+        :gsub("{summary}", (summary or "No summary available"):gsub("%%", "%%%%"))
         :gsub("{deadline}", proposal.deadline and os.date("%B %d, %Y", proposal.deadline) or "No deadline")
-        :gsub("{proposer}", proposal.proposer or "Unknown")
-        :gsub("{platform}", proposal.platform or "Unknown")
-        :gsub("{url}", proposal.url or "")
+        :gsub("{proposer}", (proposal.proposer or "Unknown"):gsub("%%", "%%%%"))
+        :gsub("{platform}", (proposal.platform or "Unknown"):gsub("%%", "%%%%"))
+        :gsub("{url}", (proposal.url or ""):gsub("%%", "%%%%"))
     
-    return {
-        text = formatted_text,
-        parse_mode = "Markdown"
-    }
+    return formatted_text
 end
 
 local function send_discord_notification(proposal, summary, webhook_url)
@@ -226,11 +222,24 @@ function mod.add_subscriber(subscriber)
     return true
 end
 
-function mod.remove_subscriber(index)
-    if index and index > 0 and index <= #subscribers then
-        table.remove(subscribers, index)
-        print("Subscriber removed at index: " .. index)
-        return true
+function mod.remove_subscriber(type, identifier)
+    if not type or not identifier then
+        return false
+    end
+    
+    for i = #subscribers, 1, -1 do
+        local subscriber = subscribers[i]
+        if subscriber.type == type then
+            if type == "discord" and subscriber.webhook_url == identifier then
+                table.remove(subscribers, i)
+                print("Discord subscriber removed: " .. identifier)
+                return true
+            elseif type == "telegram" and subscriber.bot_token == identifier then
+                table.remove(subscribers, i)
+                print("Telegram subscriber removed: " .. identifier)
+                return true
+            end
+        end
     end
     return false
 end
@@ -280,7 +289,18 @@ function mod.broadcast(proposal, summary)
     end
     
     print("Broadcast complete. " .. success_count .. "/" .. total_attempts .. " notifications sent successfully")
-    return success_count > 0
+    return {
+        success = success_count > 0,
+        success_count = success_count,
+        failure_count = total_attempts - success_count,
+        total_attempts = total_attempts
+    }
 end
+
+-- Export the formatting and sending functions
+mod.format_discord_message = format_discord_message
+mod.format_telegram_message = format_telegram_message
+mod.send_discord_notification = send_discord_notification
+mod.send_telegram_notification = send_telegram_notification
 
 return mod

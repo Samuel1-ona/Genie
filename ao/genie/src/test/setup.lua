@@ -25,6 +25,12 @@ local function mockedRequire(moduleName)
     return originalRequire("test.mocked-env.lib.json")
   end
 
+  if moduleName:match("^lib%.") then
+    -- Handle lib module paths
+    local libPath = moduleName:gsub("^lib%.", "src/lib/")
+    return originalRequire(libPath)
+  end
+
   return originalRequire(moduleName)
 end
 
