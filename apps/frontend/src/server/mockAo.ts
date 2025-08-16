@@ -233,43 +233,106 @@ const mockSubscribers: Subscriber[] = [
   },
 ];
 
-// Mock governance platforms
+// Mock governance platforms (DAO platforms)
 const mockGovernancePlatforms: GovernancePlatform[] = [
   {
-    ...createBaseEntity('platform-snapshot'),
-    name: 'Snapshot',
-    slug: 'snapshot',
-    baseUrl: 'https://snapshot.org',
-    apiEndpoint: 'https://api.snapshot.org',
-    isActive: true,
-    config: {
-      rateLimit: {
-        requestsPerMinute: 60,
-        requestsPerHour: 1000,
-        requestsPerDay: 10000,
-        burstLimit: 10,
-      },
-      supportedFeatures: ['proposals', 'votes', 'delegation'],
-      authRequired: false,
-    },
+    ...createBaseEntity('dao-uniswap'),
+    name: 'Uniswap',
+    category: 'DeFi - DEX',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 86,
+    activeProposals: 3,
+    lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2h ago
+    type: 'defi',
   },
   {
-    ...createBaseEntity('platform-tally'),
-    name: 'Tally',
-    slug: 'tally',
-    baseUrl: 'https://tally.xyz',
-    apiEndpoint: 'https://api.tally.xyz',
-    isActive: true,
-    config: {
-      rateLimit: {
-        requestsPerMinute: 30,
-        requestsPerHour: 500,
-        requestsPerDay: 5000,
-        burstLimit: 5,
-      },
-      supportedFeatures: ['proposals', 'votes', 'execution'],
-      authRequired: true,
-    },
+    ...createBaseEntity('dao-aave'),
+    name: 'Aave',
+    category: 'DeFi - Lending',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 124,
+    activeProposals: 2,
+    lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3h ago
+    type: 'defi',
+  },
+  {
+    ...createBaseEntity('dao-makerdao'),
+    name: 'MakerDAO',
+    category: 'DeFi - Stablecoin',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 198,
+    activeProposals: 5,
+    lastUpdated: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5h ago
+    type: 'defi',
+  },
+  {
+    ...createBaseEntity('dao-compound'),
+    name: 'Compound',
+    category: 'DeFi - Lending',
+    status: 'error',
+    scrapeStatus: 'failed',
+    totalProposals: 72,
+    activeProposals: 1,
+    lastUpdated: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // 12h ago
+    type: 'defi',
+  },
+  {
+    ...createBaseEntity('dao-ens'),
+    name: 'ENS',
+    category: 'Infrastructure - Naming',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 54,
+    activeProposals: 0,
+    lastUpdated: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6h ago
+    type: 'infrastructure',
+  },
+  {
+    ...createBaseEntity('dao-synthetix'),
+    name: 'Synthetix',
+    category: 'DeFi - Derivatives',
+    status: 'paused',
+    scrapeStatus: 'paused',
+    totalProposals: 103,
+    activeProposals: 2,
+    lastUpdated: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1d ago
+    type: 'defi',
+  },
+  {
+    ...createBaseEntity('dao-optimism'),
+    name: 'Optimism',
+    category: 'Infrastructure - L2',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 38,
+    activeProposals: 4,
+    lastUpdated: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4h ago
+    type: 'infrastructure',
+  },
+  {
+    ...createBaseEntity('dao-arbitrum'),
+    name: 'Arbitrum',
+    category: 'Infrastructure - L2',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 26,
+    activeProposals: 1,
+    lastUpdated: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(), // 7h ago
+    type: 'infrastructure',
+  },
+  {
+    ...createBaseEntity('dao-curve'),
+    name: 'Curve Finance',
+    category: 'DeFi - DEX',
+    status: 'active',
+    scrapeStatus: 'success',
+    totalProposals: 91,
+    activeProposals: 3,
+    lastUpdated: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8h ago
+    type: 'defi',
   },
 ];
 

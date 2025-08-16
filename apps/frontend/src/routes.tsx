@@ -7,7 +7,7 @@ import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
 const Overview = lazy(() => import('@/pages/Overview'));
 const Proposals = lazy(() => import('@/pages/proposals/ProposalsPage'));
 const ProposalDetail = lazy(() => import('@/pages/proposals/ProposalDetail'));
-const DAOs = lazy(() => import('@/pages/DAOs'));
+const DAOs = lazy(() => import('@/pages/daos/DaosPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Runtime = lazy(() => import('@/pages/Runtime'));
 const Balances = lazy(() => import('@/pages/Balances'));

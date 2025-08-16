@@ -56,11 +56,19 @@ export interface Subscriber extends BaseEntity {
 // Governance Platform interface
 export interface GovernancePlatform extends BaseEntity {
   name: string;
-  slug: string;
-  baseUrl: string;
-  apiEndpoint: string;
-  isActive: boolean;
-  config: {
+  category?: string;
+  status: 'active' | 'error' | 'paused';
+  scrapeStatus: 'success' | 'failed' | 'paused';
+  totalProposals: number;
+  activeProposals: number;
+  lastUpdated: string;
+  type?: string;
+  // Legacy fields for backward compatibility
+  slug?: string;
+  baseUrl?: string;
+  apiEndpoint?: string;
+  isActive?: boolean;
+  config?: {
     rateLimit: RateLimit;
     supportedFeatures: string[];
     authRequired: boolean;
