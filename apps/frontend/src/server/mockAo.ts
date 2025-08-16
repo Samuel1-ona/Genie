@@ -207,29 +207,52 @@ const mockProposals: Proposal[] = [
 const mockSubscribers: Subscriber[] = [
   {
     ...createBaseEntity('sub-1'),
-    walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
-    email: 'alice@example.com',
-    name: 'Alice Johnson',
-    preferences: {
-      emailNotifications: true,
-      pushNotifications: true,
-      daoIds: ['dao-uniswap', 'dao-aave'],
-    },
+    name: 'Genie Alerts',
+    type: 'discord',
+    endpoint:
+      'https://discord.com/api/webhooks/1234567890/acdefghijklmnopqrstuvwxyz',
     isActive: true,
-    lastActiveAt: new Date().toISOString(),
+    lastActiveAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(), // 13 Aug, 20:06 WAT
   },
   {
     ...createBaseEntity('sub-2'),
-    walletAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
-    email: 'bob@example.com',
-    name: 'Bob Smith',
-    preferences: {
-      emailNotifications: false,
-      pushNotifications: true,
-      daoIds: ['dao-compound'],
-    },
+    name: 'DAO News Channel',
+    type: 'telegram',
+    endpoint: '-1001234567890',
     isActive: true,
-    lastActiveAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    lastActiveAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 13 Aug, 19:45 WAT
+  },
+  {
+    ...createBaseEntity('sub-3'),
+    name: 'Governance Updates',
+    type: 'discord',
+    endpoint:
+      'https://discord.com/api/webhooks/9876543210/zxwvutsrqponmlkjihgfedcba',
+    isActive: false,
+    lastActiveAt: new Date(
+      Date.now() - 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000
+    ).toISOString(), // 12 Aug, 14:22 WAT
+  },
+  {
+    ...createBaseEntity('sub-4'),
+    name: 'Uniswap Alerts',
+    type: 'telegram',
+    endpoint: '-1009876543210',
+    isActive: true,
+    lastActiveAt: new Date(
+      Date.now() - 10 * 60 * 60 * 1000 - 15 * 60 * 1000
+    ).toISOString(), // 13 Aug, 10:15 WAT
+  },
+  {
+    ...createBaseEntity('sub-5'),
+    name: 'Aave Governance',
+    type: 'discord',
+    endpoint:
+      'https://discord.com/api/webhooks/5678901234/hopqrstuvwxyzabcdefghijkl',
+    isActive: true,
+    lastActiveAt: new Date(
+      Date.now() - 1 * 60 * 60 * 1000 - 30 * 60 * 1000
+    ).toISOString(), // 13 Aug, 18:30 WAT
   },
 ];
 

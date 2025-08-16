@@ -41,16 +41,19 @@ export interface Proposal extends BaseEntity {
 
 // Subscriber interface
 export interface Subscriber extends BaseEntity {
-  walletAddress: string;
+  name: string;
+  type: 'discord' | 'telegram';
+  endpoint: string;
+  isActive: boolean;
+  lastActiveAt: string;
+  // Legacy fields for backward compatibility
+  walletAddress?: string;
   email?: string;
-  name?: string;
-  preferences: {
+  preferences?: {
     emailNotifications: boolean;
     pushNotifications: boolean;
     daoIds: string[];
   };
-  isActive: boolean;
-  lastActiveAt: string;
 }
 
 // Governance Platform interface
