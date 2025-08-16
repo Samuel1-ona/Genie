@@ -11,11 +11,14 @@ export function Topbar({ className }: TopbarProps) {
   return (
     <div
       className={cn(
-        'sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-900',
+        'sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-[#171717]',
         className
       )}
     >
       {/* Left side - Search */}
+      <div className="flex items-center space-x-4"></div>
+
+      {/* Right side - Actions */}
       <div className="flex items-center space-x-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -25,10 +28,6 @@ export function Topbar({ className }: TopbarProps) {
             className="h-9 w-64 rounded-md border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
           />
         </div>
-      </div>
-
-      {/* Right side - Actions */}
-      <div className="flex items-center space-x-4">
         {/* Notifications */}
         <Button variant="ghost" size="sm" className="relative">
           <Bell className="h-5 w-5" />

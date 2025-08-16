@@ -20,9 +20,9 @@ const navigation = [
   { name: 'Proposals', href: '/proposals', icon: FileText },
   { name: 'DAOs', href: '/daos', icon: Building2 },
   { name: 'Notifications', href: '/notifications', icon: Bell },
-  { name: 'Runtime', href: '/runtime', icon: Cpu },
+  { name: 'Scraping Status', href: '/runtime', icon: Cpu },
   { name: 'Balances', href: '/balances', icon: Wallet },
-  { name: 'Errors', href: '/errors', icon: AlertTriangle },
+  { name: 'Error Logs', href: '/errors', icon: AlertTriangle },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -55,7 +55,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
           className
         )}
@@ -79,7 +79,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                     isActive
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-[#1b222d] dark:text-blue-300'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                   )}
                   onClick={() => setIsMobileOpen(false)}

@@ -17,9 +17,11 @@ import type {
 // Generate a recent timestamp
 function getRecentTimestamp(): string {
   const now = new Date();
-  // Random offset within the last 24 hours
-  const offset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
-  return new Date(now.getTime() - offset).toISOString();
+  // Create timestamps that match the image reference (Aug 13, around 20:00 WAT)
+  const baseTime = new Date(2024, 7, 13, 20, 0, 0); // Aug 13, 20:00
+  const offsets = [0, -2, -5, -8, -11, -14]; // Minutes offset for each entry
+  const randomOffset = offsets[Math.floor(Math.random() * offsets.length)];
+  return new Date(baseTime.getTime() + randomOffset * 60 * 1000).toISOString();
 }
 
 // Generate a base entity with timestamps
@@ -182,7 +184,7 @@ const mockBalances: Balance[] = [
 const mockScrapeHistory: ScrapeHistory[] = [
   {
     ...createBaseEntity('scrape-1'),
-    platformId: 'platform-snapshot',
+    platformId: 'Uniswap',
     daoId: 'dao-uniswap',
     status: 'success',
     proposalsScraped: 15,
@@ -192,13 +194,53 @@ const mockScrapeHistory: ScrapeHistory[] = [
   },
   {
     ...createBaseEntity('scrape-2'),
-    platformId: 'platform-tally',
+    platformId: 'Aave',
     daoId: 'dao-aave',
-    status: 'partial',
+    status: 'success',
+    proposalsScraped: 12,
+    errors: [],
+    duration: 3000,
+    metadata: { totalProposals: 12, newProposals: 2 },
+  },
+  {
+    ...createBaseEntity('scrape-3'),
+    platformId: 'MakerDAO',
+    daoId: 'dao-makerdao',
+    status: 'success',
     proposalsScraped: 8,
+    errors: [],
+    duration: 2000,
+    metadata: { totalProposals: 8, newProposals: 1 },
+  },
+  {
+    ...createBaseEntity('scrape-4'),
+    platformId: 'Compound',
+    daoId: 'dao-compound',
+    status: 'failed',
+    proposalsScraped: 0,
     errors: ['Rate limit exceeded', 'Connection timeout'],
     duration: 5000,
-    metadata: { totalProposals: 12, newProposals: 2 },
+    metadata: { totalProposals: 0, newProposals: 0 },
+  },
+  {
+    ...createBaseEntity('scrape-5'),
+    platformId: 'ENS',
+    daoId: 'dao-ens',
+    status: 'success',
+    proposalsScraped: 6,
+    errors: [],
+    duration: 1800,
+    metadata: { totalProposals: 6, newProposals: 1 },
+  },
+  {
+    ...createBaseEntity('scrape-6'),
+    platformId: 'Synthetix',
+    daoId: 'dao-synthetix',
+    status: 'partial',
+    proposalsScraped: 4,
+    errors: ['Partial data retrieval'],
+    duration: 4000,
+    metadata: { totalProposals: 8, newProposals: 1 },
   },
 ];
 
