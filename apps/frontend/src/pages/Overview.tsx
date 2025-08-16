@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/common/StatusChip';
 import { TimeAgo } from '@/components/common/TimeAgo';
 import { EmptyState } from '@/components/common/EmptyState';
-import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
+import { OverviewTableSkeleton } from '@/components/skeleton/TableSkeleton';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -216,6 +216,7 @@ export default function Overview() {
                 onClick={handleRunScrape}
                 disabled={isScraping || !platforms?.length}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                aria-label="Run scraping process to fetch latest proposals"
               >
                 <Play className="h-4 w-4 mr-2" />
                 {isScraping ? 'Running...' : 'Run Scrape'}
@@ -326,7 +327,7 @@ export default function Overview() {
               <CardContent className="p-0">
                 {proposalsLoading ? (
                   <div className="p-6">
-                    <TableSkeleton rows={5} columns={6} />
+                    <OverviewTableSkeleton />
                   </div>
                 ) : proposals && proposals.length > 0 ? (
                   <div className="overflow-hidden">
@@ -372,7 +373,7 @@ export default function Overview() {
                               </span>
                             </div>
                             <div>
-                              <StatusChip variant={proposal.status}>
+                              <StatusChip status={proposal.status}>
                                 {proposal.status}
                               </StatusChip>
                             </div>
@@ -503,7 +504,7 @@ export default function Overview() {
           <CardContent className="p-0">
             {historyLoading ? (
               <div className="p-6">
-                <TableSkeleton rows={3} columns={4} />
+                <OverviewTableSkeleton />
               </div>
             ) : scrapingHistory && scrapingHistory.length > 0 ? (
               <div className="divide-y divide-gray-200 dark:divide-gray-700">

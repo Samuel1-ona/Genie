@@ -4,6 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useProposals } from '@/hooks/useAOClient';
 import { Filters } from '@/components/proposals/Filters';
 import { ProposalsTable } from '@/components/proposals/ProposalsTable';
+import { ProposalsTableSkeleton } from '@/components/skeleton/TableSkeleton';
 
 import { Button } from '@/components/ui/button';
 import { Plus, Filter } from 'lucide-react';
@@ -145,11 +146,17 @@ export default function ProposalsPage() {
 
         {/* Proposals Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <ProposalsTable
-            proposals={filteredProposals}
-            isLoading={isLoading}
-            onProposalSelect={handleProposalSelect}
-          />
+          {isLoading ? (
+            <div className="p-6">
+              <ProposalsTableSkeleton />
+            </div>
+          ) : (
+            <ProposalsTable
+              proposals={filteredProposals}
+              isLoading={isLoading}
+              onProposalSelect={handleProposalSelect}
+            />
+          )}
         </div>
       </div>
     </div>

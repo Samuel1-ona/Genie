@@ -110,7 +110,7 @@ export function ProposalsTable({
       columnHelper.accessor('status', {
         header: 'Status',
         cell: ({ getValue }) => (
-          <StatusChip variant={getValue()}>{getValue()}</StatusChip>
+          <StatusChip status={getValue()}>{getValue()}</StatusChip>
         ),
       }),
 
