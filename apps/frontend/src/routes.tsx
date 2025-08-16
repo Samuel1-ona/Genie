@@ -12,7 +12,7 @@ const Notifications = lazy(
   () => import('@/pages/notifications/NotificationsPage')
 );
 const Runtime = lazy(() => import('@/pages/runtime/RuntimePage'));
-const Balances = lazy(() => import('@/pages/Balances'));
+const Balances = lazy(() => import('@/pages/balances/BalancesPage'));
 const Errors = lazy(() => import('@/pages/Errors'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
