@@ -389,64 +389,69 @@ const mockBalances: Balance[] = [
 const mockScrapeHistory: ScrapeHistory[] = [
   {
     ...createBaseEntity('scrape-1'),
-    platformId: 'Uniswap',
-    daoId: 'dao-uniswap',
+    platformId: 'tally.xyz/aave',
     status: 'success',
-    proposalsScraped: 15,
-    errors: [],
-    duration: 2500,
-    metadata: { totalProposals: 15, newProposals: 3 },
+    timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(), // 18 minutes ago
+    duration: 107000, // 1m 47s
+    newProposals: 68,
+    unchangedProposals: 342,
   },
   {
     ...createBaseEntity('scrape-2'),
-    platformId: 'Aave',
-    daoId: 'dao-aave',
-    status: 'success',
-    proposalsScraped: 12,
-    errors: [],
-    duration: 3000,
-    metadata: { totalProposals: 12, newProposals: 2 },
+    platformId: 'tally.xyz/uniswap',
+    status: 'failed',
+    timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(), // 50 minutes ago
+    duration: 28000, // 28s
+    errorMessage: 'Rate limit exceeded, Retry in 15m',
   },
   {
     ...createBaseEntity('scrape-3'),
-    platformId: 'MakerDAO',
-    daoId: 'dao-makerdao',
+    platformId: 'tally.xyz/makerdao',
     status: 'success',
-    proposalsScraped: 8,
-    errors: [],
-    duration: 2000,
-    metadata: { totalProposals: 8, newProposals: 1 },
+    timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(), // 1.5 hours ago
+    duration: 132000, // 2m 12s
+    newProposals: 14,
+    unchangedProposals: 189,
   },
   {
     ...createBaseEntity('scrape-4'),
-    platformId: 'Compound',
-    daoId: 'dao-compound',
-    status: 'failed',
-    proposalsScraped: 0,
-    errors: ['Rate limit exceeded', 'Connection timeout'],
-    duration: 5000,
-    metadata: { totalProposals: 0, newProposals: 0 },
+    platformId: 'tally.xyz/compound',
+    status: 'partial',
+    timestamp: new Date(Date.now() - 120 * 60 * 1000).toISOString(), // 2 hours ago
+    duration: 118000, // 1m 58s
+    newProposals: 5,
+    errorCount: 2,
   },
   {
     ...createBaseEntity('scrape-5'),
-    platformId: 'ENS',
-    daoId: 'dao-ens',
+    platformId: 'tally.xyz/ens',
     status: 'success',
-    proposalsScraped: 6,
-    errors: [],
-    duration: 1800,
-    metadata: { totalProposals: 6, newProposals: 1 },
+    timestamp: new Date(Date.now() - 150 * 60 * 1000).toISOString(), // 2.5 hours ago
+    duration: 45000, // 45s
+    newProposals: 0,
+    unchangedProposals: 87,
   },
-  {
-    ...createBaseEntity('scrape-6'),
-    platformId: 'Synthetix',
-    daoId: 'dao-synthetix',
-    status: 'partial',
-    proposalsScraped: 4,
-    errors: ['Partial data retrieval'],
-    duration: 4000,
-    metadata: { totalProposals: 8, newProposals: 1 },
-  },
+  // Add more historical data to match the "128 scrape operations" mentioned in the image
+  ...Array.from({ length: 123 }, (_, i) => ({
+    ...createBaseEntity(`scrape-${i + 6}`),
+    platformId: [
+      'tally.xyz/aave',
+      'tally.xyz/uniswap',
+      'tally.xyz/makerdao',
+      'tally.xyz/compound',
+      'tally.xyz/ens',
+    ][i % 5],
+    status: ['success', 'failed', 'partial'][i % 3] as
+      | 'success'
+      | 'failed'
+      | 'partial',
+    timestamp: new Date(Date.now() - (i + 6) * 30 * 60 * 1000).toISOString(), // Every 30 minutes
+    duration: Math.floor(Math.random() * 180000) + 30000, // 30s to 3m
+    newProposals: Math.floor(Math.random() * 100),
+    unchangedProposals: Math.floor(Math.random() * 500),
+    errorMessage: i % 3 === 1 ? 'Rate limit exceeded' : undefined,
+    errorCount: i % 3 === 2 ? Math.floor(Math.random() * 5) + 1 : undefined,
+  })),
 ];
 
 // Mock runtime stats

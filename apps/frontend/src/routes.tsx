@@ -11,7 +11,7 @@ const DAOs = lazy(() => import('@/pages/daos/DaosPage'));
 const Notifications = lazy(
   () => import('@/pages/notifications/NotificationsPage')
 );
-const Runtime = lazy(() => import('@/pages/Runtime'));
+const Runtime = lazy(() => import('@/pages/runtime/RuntimePage'));
 const Balances = lazy(() => import('@/pages/Balances'));
 const Errors = lazy(() => import('@/pages/Errors'));
 const Settings = lazy(() => import('@/pages/Settings'));

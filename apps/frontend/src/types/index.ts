@@ -101,12 +101,13 @@ export interface RateLimit {
 // Scrape History interface
 export interface ScrapeHistory extends BaseEntity {
   platformId: string;
-  daoId?: string;
   status: 'success' | 'failed' | 'partial';
-  proposalsScraped: number;
-  errors: string[];
+  timestamp: string;
   duration: number; // in milliseconds
-  metadata?: Record<string, any>;
+  newProposals?: number;
+  unchangedProposals?: number;
+  errorMessage?: string;
+  errorCount?: number;
 }
 
 // Balance interface
