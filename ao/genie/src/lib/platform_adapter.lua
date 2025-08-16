@@ -127,10 +127,12 @@ if success then
     json = cjson
 else
     -- Fallback to built-in JSON if available (AO environment)
-    json = json or {
-        encode = function(data) return "{}" end,
-        decode = function(str) return {} end
-    }
+    if not json then
+        json = {
+            encode = function(data) return "{}" end,
+            decode = function(str) return {} end
+        }
+    end
 end
 
 -- Real HTTP request function using LuaSocket
@@ -337,8 +339,8 @@ function mod.fetch_tally_proposals(governance_id, platform_config)
         if response then
             error_msg = error_msg .. " (Status: " .. response.status .. ")"
             if response.body then
-                local error_data = json.decode(response.body)
-                if error_data and error_data.error then
+                local success, error_data = pcall(json.decode, response.body)
+                if success and error_data and error_data.error then
                     error_msg = error_msg .. " - " .. error_data.error
                 end
             end
@@ -368,14 +370,17 @@ function mod.map_tally_status(tally_status)
         ["ACTIVE"] = "active",
         ["PENDING"] = "pending",
         ["SUCCEEDED"] = "passed",
+        ["PASSED"] = "passed",
         ["DEFEATED"] = "failed",
+        ["FAILED"] = "failed",
         ["EXECUTED"] = "executed",
         ["CANCELED"] = "canceled",
         ["EXPIRED"] = "expired",
         ["QUEUED"] = "queued"
     }
     
-    return status_mapping[tally_status:upper()] or "active"
+    local upper_status = string.upper(tostring(tally_status))
+    return status_mapping[upper_status] or tally_status
 end
 
 -- Function to fetch governance platform data
@@ -422,8 +427,8 @@ function mod.fetch_governance_platform(governance_id)
     local response = make_http_request(url, headers, nil)
     
     if response and response.status == 200 then
-        local data = json.decode(response.body)
-        if data and data.governance then
+        local success, data = pcall(json.decode, response.body)
+        if success and data and data.governance then
             local platform_data = data.governance
             
             -- Transform to our governance platform format

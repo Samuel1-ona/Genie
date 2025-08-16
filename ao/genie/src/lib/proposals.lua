@@ -51,6 +51,7 @@ local function create_proposal(data)
         description = data.description or "",
         content = data.content or "",
         proposer = data.proposer or data.From or "",
+        From = data.From or data.proposer or "",
         platform = data.platform or "",
         governance_platform_id = data.governance_platform_id or "",
         status = data.status or "active",
@@ -121,11 +122,18 @@ end
 -- Check for existing proposals , if the proposals exists it returns true if the proposals does not exists it returns false
 
 function mod.exists(proposal_id)
-    assert(type(proposal_id) == "string" or type(proposal_id) == "number", "Proposal ID must be a string or number")
-    assert(proposal_id ~= "", "Proposal ID cannot be empty")
-
     if not proposal_id then 
         print("Proposal ID is required")
+        return false
+    end
+    
+    if type(proposal_id) ~= "string" and type(proposal_id) ~= "number" then
+        print("Proposal ID must be a string or number")
+        return false
+    end
+    
+    if proposal_id == "" then
+        print("Proposal ID cannot be empty")
         return false
     end
 

@@ -2,6 +2,8 @@ local notification_system = require "lib.notification_system"
 local platform_adapter = require "lib.platform_adapter"
 local proposals = require "lib.proposals"
 
+
+
 -- JSON library (try cjson first, fallback to built-in)
 local json
 local success, cjson = pcall(require, "cjson")
@@ -9,15 +11,17 @@ if success then
     json = cjson
 else
     -- Fallback to built-in JSON if available (AO environment)
-    json = json or {
-        encode = function(data) return "{}" end,
-        decode = function(str) return {} end
-    }
+    if not json then
+        json = {
+            encode = function(data) return "{}" end,
+            decode = function(str) return {} end
+        }
+    end
 end
 
 -- Global system configuration
-version = "0.0.1"
-AgentName = "Genie-Proposal-Summarizer"
+local version = "0.0.1"
+local AgentName = "Genie-Proposal-Summarizer"
 
 -- Global system state
 GovernanceData = GovernanceData or {}
