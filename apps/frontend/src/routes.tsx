@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/layouts/AppLayout';
 import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
+import { RouteErrorBoundary } from '@/pages/_error/RouteErrorBoundary';
 
 // Lazy load page components
 const Overview = lazy(() => import('@/pages/Overview'));
@@ -15,6 +16,8 @@ const Runtime = lazy(() => import('@/pages/runtime/RuntimePage'));
 const Balances = lazy(() => import('@/pages/balances/BalancesPage'));
 const Errors = lazy(() => import('@/pages/errors/ErrorsPage'));
 const Settings = lazy(() => import('@/pages/settings/SettingsPage'));
+const ErrorTest = lazy(() => import('@/pages/test/ErrorTestPage'));
+const NotFound = lazy(() => import('@/pages/_error/NotFound'));
 
 // Loading component
 function PageLoading() {
@@ -28,81 +31,121 @@ function PageLoading() {
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
+    <RouteErrorBoundary>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Overview />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="proposals"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Proposals />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="proposals/:id"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <ProposalDetail />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="daos"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <DAOs />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Notifications />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="runtime"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Runtime />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="balances"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Balances />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="errors"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Errors />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <Settings />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+          <Route
+            path="test"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <RouteErrorBoundary>
+                  <ErrorTest />
+                </RouteErrorBoundary>
+              </Suspense>
+            }
+          />
+        </Route>
+
+        {/* 404 Route - Must be last */}
         <Route
-          index
+          path="*"
           element={
             <Suspense fallback={<PageLoading />}>
-              <Overview />
+              <NotFound />
             </Suspense>
           }
         />
-        <Route
-          path="proposals"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Proposals />
-            </Suspense>
-          }
-        />
-        <Route
-          path="proposals/:id"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <ProposalDetail />
-            </Suspense>
-          }
-        />
-        <Route
-          path="daos"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <DAOs />
-            </Suspense>
-          }
-        />
-        <Route
-          path="notifications"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Notifications />
-            </Suspense>
-          }
-        />
-        <Route
-          path="runtime"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Runtime />
-            </Suspense>
-          }
-        />
-        <Route
-          path="balances"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Balances />
-            </Suspense>
-          }
-        />
-        <Route
-          path="errors"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Errors />
-            </Suspense>
-          }
-        />
-        <Route
-          path="settings"
-          element={
-            <Suspense fallback={<PageLoading />}>
-              <Settings />
-            </Suspense>
-          }
-        />
-      </Route>
-    </Routes>
+      </Routes>
+    </RouteErrorBoundary>
   );
 }
