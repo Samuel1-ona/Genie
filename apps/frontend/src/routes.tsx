@@ -5,7 +5,7 @@ import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
 
 // Lazy load page components
 const Overview = lazy(() => import('@/pages/Overview'));
-const Proposals = lazy(() => import('@/pages/Proposals'));
+const Proposals = lazy(() => import('@/pages/proposals/ProposalsPage'));
 const DAOs = lazy(() => import('@/pages/DAOs'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Runtime = lazy(() => import('@/pages/Runtime'));
