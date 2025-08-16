@@ -1,20 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useProposals } from '@/hooks/useAOClient';
 import { Filters } from '@/components/proposals/Filters';
 import { ProposalsTable } from '@/components/proposals/ProposalsTable';
-import { ProposalDrawer } from './ProposalDrawer';
+
 import { Button } from '@/components/ui/button';
 import { Plus, Filter } from 'lucide-react';
 import type { Proposal } from '@/types';
 
 export default function ProposalsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(
-    null
-  );
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Get filter values from URL
   const dao = searchParams.get('dao') || 'all';
@@ -103,14 +100,7 @@ export default function ProposalsPage() {
 
   // Handle proposal selection
   const handleProposalSelect = (proposal: Proposal) => {
-    setSelectedProposal(proposal);
-    setIsDrawerOpen(true);
-  };
-
-  // Handle drawer close
-  const handleDrawerClose = () => {
-    setIsDrawerOpen(false);
-    setSelectedProposal(null);
+    navigate(`/proposals/${proposal.id}`);
   };
 
   return (
@@ -161,13 +151,6 @@ export default function ProposalsPage() {
             onProposalSelect={handleProposalSelect}
           />
         </div>
-
-        {/* Proposal Drawer */}
-        <ProposalDrawer
-          proposal={selectedProposal}
-          isOpen={isDrawerOpen}
-          onClose={handleDrawerClose}
-        />
       </div>
     </div>
   );

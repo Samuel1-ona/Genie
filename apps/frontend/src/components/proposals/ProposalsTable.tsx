@@ -10,6 +10,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatusChip } from '@/components/common/StatusChip';
 import { TimeAgo } from '@/components/common/TimeAgo';
 import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
@@ -69,13 +70,17 @@ export function ProposalsTable({
   onProposalSelect,
 }: ProposalsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const navigate = useNavigate();
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('title', {
         header: 'Title',
-        cell: ({ getValue }) => (
-          <div className="font-medium text-gray-900 dark:text-white truncate max-w-xs">
+        cell: ({ getValue, row }) => (
+          <div
+            className="font-medium text-gray-900 dark:text-white truncate max-w-xs cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => navigate(`/proposals/${row.original.id}`)}
+          >
             {getValue()}
           </div>
         ),

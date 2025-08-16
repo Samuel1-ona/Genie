@@ -6,6 +6,7 @@ import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
 // Lazy load page components
 const Overview = lazy(() => import('@/pages/Overview'));
 const Proposals = lazy(() => import('@/pages/proposals/ProposalsPage'));
+const ProposalDetail = lazy(() => import('@/pages/proposals/ProposalDetail'));
 const DAOs = lazy(() => import('@/pages/DAOs'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Runtime = lazy(() => import('@/pages/Runtime'));
@@ -40,6 +41,14 @@ export function AppRoutes() {
           element={
             <Suspense fallback={<PageLoading />}>
               <Proposals />
+            </Suspense>
+          }
+        />
+        <Route
+          path="proposals/:id"
+          element={
+            <Suspense fallback={<PageLoading />}>
+              <ProposalDetail />
             </Suspense>
           }
         />
