@@ -21,6 +21,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/lib/toast';
 
 interface Settings {
   tallyApiKey: string;
@@ -67,6 +68,7 @@ const ROLE_CONFIG = {
 };
 
 export default function SettingsPage() {
+  const toast = useToast();
   const [settings, setSettings] = useState<Settings>({
     tallyApiKey: '',
     discordWebhookUrl:
@@ -154,6 +156,10 @@ export default function SettingsPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+    toast.success(
+      'Copied to clipboard',
+      'The text has been copied to your clipboard'
+    );
   };
 
   const handleSave = async () => {
@@ -174,7 +180,10 @@ export default function SettingsPage() {
 
       localStorage.setItem('genie-settings', JSON.stringify(settings));
       setHasChanges(false);
-      console.log('Settings saved successfully');
+      toast.success(
+        'Settings saved',
+        'Your settings have been saved successfully'
+      );
     } catch (error) {
       console.error('Failed to save settings:', error);
     } finally {

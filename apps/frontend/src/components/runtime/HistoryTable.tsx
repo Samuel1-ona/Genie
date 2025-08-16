@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScrapeHistory } from '@/types';
+import { formatTableTime } from '@/lib/time';
 
 interface HistoryTableProps {
   data: ScrapeHistory[];
@@ -57,17 +58,7 @@ export function HistoryTable({
   const currentData = filteredData.slice(startIndex, endIndex);
 
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return (
-      date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }) + ' WAT'
-    );
+    return formatTableTime(timestamp);
   };
 
   const formatDuration = (durationMs: number) => {

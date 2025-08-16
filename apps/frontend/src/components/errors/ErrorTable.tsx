@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatTableTime } from '@/lib/time';
 
 interface Error {
   id: string;
@@ -78,17 +79,7 @@ export function ErrorTable({
   const currentErrors = filteredErrors.slice(startIndex, endIndex);
 
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return (
-      date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }) + ' WAT'
-    );
+    return formatTableTime(timestamp);
   };
 
   const handleViewDetails = (error: Error) => {

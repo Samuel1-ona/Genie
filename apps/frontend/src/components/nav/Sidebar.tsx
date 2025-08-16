@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/store/ui';
 
 const navigation = [
   { name: 'Overview', href: '/', icon: LayoutDashboard },
@@ -31,7 +31,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebar();
   const location = useLocation();
 
   return (
@@ -41,10 +41,10 @@ export function Sidebar({ className }: SidebarProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          onClick={toggleSidebar}
           className="p-2"
         >
-          {isMobileOpen ? (
+          {sidebarOpen ? (
             <X className="h-5 w-5" />
           ) : (
             <Menu className="h-5 w-5" />
@@ -56,7 +56,7 @@ export function Sidebar({ className }: SidebarProps) {
       <div
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           className
         )}
       >
@@ -82,7 +82,7 @@ export function Sidebar({ className }: SidebarProps) {
                       ? 'bg-blue-100 text-blue-700 dark:bg-[#1b222d] dark:text-blue-300'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                   )}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon
                     className={cn(
@@ -101,10 +101,10 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Mobile overlay */}
-      {isMobileOpen && (
+      {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          onClick={() => setSidebarOpen(false)}
         />
       )}
     </>
