@@ -14,7 +14,7 @@ const Notifications = lazy(
 const Runtime = lazy(() => import('@/pages/runtime/RuntimePage'));
 const Balances = lazy(() => import('@/pages/balances/BalancesPage'));
 const Errors = lazy(() => import('@/pages/errors/ErrorsPage'));
-const Settings = lazy(() => import('@/pages/Settings'));
+const Settings = lazy(() => import('@/pages/settings/SettingsPage'));
 
 // Loading component
 function PageLoading() {
