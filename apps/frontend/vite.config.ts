@@ -10,7 +10,7 @@ function aoApiPlugin() {
     configureServer(server) {
       server.middlewares.use('/api/ao', async (req, res, next) => {
         if (req.method === 'POST') {
-          console.log('AO middleware triggered');
+          console.log('AO Bridge triggered');
           try {
             // Parse request body
             let body = '';
@@ -20,25 +20,58 @@ function aoApiPlugin() {
 
             req.on('end', async () => {
               try {
-                const { action, data, tags } = JSON.parse(body);
-                console.log('Parsed request:', { action, data, tags });
+                const requestBody = JSON.parse(body);
+                console.log('AO Bridge request:', requestBody);
 
-                // Import and call mock handler
-                const { mockAo } = await import('./src/server/mockAo.ts');
-                const result = await mockAo(action, data, tags);
+                // Import and call real AO bridge
+                const { aoBridge } = await import('./server/aoBridge.ts');
 
-                // Set response headers
+                // Create mock Express-like request/response objects
+                const mockReq = {
+                  body: requestBody,
+                  method: req.method,
+                  headers: req.headers,
+                } as any;
+
+                const mockRes = {
+                  status: (code: number) => ({
+                    json: (data: any) => {
+                      res.statusCode = code;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.setHeader('Access-Control-Allow-Origin', '*');
+                      res.setHeader(
+                        'Access-Control-Allow-Methods',
+                        'POST, OPTIONS'
+                      );
+                      res.setHeader(
+                        'Access-Control-Allow-Headers',
+                        'Content-Type'
+                      );
+                      res.end(JSON.stringify(data));
+                    },
+                  }),
+                  json: (data: any) => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.setHeader(
+                      'Access-Control-Allow-Methods',
+                      'POST, OPTIONS'
+                    );
+                    res.setHeader(
+                      'Access-Control-Allow-Headers',
+                      'Content-Type'
+                    );
+                    res.end(JSON.stringify(data));
+                  },
+                } as any;
+
+                await aoBridge(mockReq, mockRes);
+              } catch (error) {
+                console.error('Error in AO Bridge:', error);
+                res.statusCode = 500;
                 res.setHeader('Content-Type', 'application/json');
                 res.setHeader('Access-Control-Allow-Origin', '*');
-                res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-                // Send response
-                res.statusCode = 200;
-                res.end(JSON.stringify({ ok: true, data: result }));
-              } catch (error) {
-                console.error('Error processing AO request:', error);
-                res.statusCode = 500;
                 res.end(
                   JSON.stringify({
                     ok: false,
@@ -51,8 +84,10 @@ function aoApiPlugin() {
               }
             });
           } catch (error) {
-            console.error('Error in AO middleware:', error);
+            console.error('Error in AO Bridge middleware:', error);
             res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
             res.end(
               JSON.stringify({
                 ok: false,

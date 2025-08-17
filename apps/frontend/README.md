@@ -79,51 +79,75 @@ Create a `.env` file in the root directory:
 # AO Agent Configuration
 VITE_AO_TARGET_ID=REPLACE_WITH_AO_AGENT_ID
 
+# AO Relay Configuration (Server-side)
+AO_RELAY_URL=https://your-ao-relay-endpoint.com
+AO_API_KEY=your-optional-api-key
+
 # API Endpoints
 VITE_TALLY_BASE_URL=https://api.tally.xyz/query
 
 # Optional: Development overrides
-VITE_USE_MOCK_AO=true
+VITE_USE_MOCK_AO=false
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
 ### Environment Variables Explained
 
-- `VITE_AO_TARGET_ID`: Your AO agent ID for blockchain interactions
-- `VITE_TALLY_BASE_URL`: Base URL for Tally API (governance data)
-- `VITE_USE_MOCK_AO`: Set to `true` to use mock data instead of real AO calls
-- `VITE_API_BASE_URL`: Base URL for your backend API (if different from default)
+- **`VITE_AO_TARGET_ID`**: Your AO agent ID that the frontend will communicate with
+- **`AO_RELAY_URL`**: The HTTP endpoint of your AO relay (e.g., ao.link-compatible relay)
+- **`AO_API_KEY`**: Optional authentication key for your AO relay (if required)
+- **`VITE_TALLY_BASE_URL`**: Base URL for Tally API (governance data)
+- **`VITE_USE_MOCK_AO`**: Set to `false` to use the real AO bridge, `true` for mock data
+- **`VITE_API_BASE_URL`**: Base URL for your backend API (if different from default)
+
+## 🔗 AO Bridge Integration
+
+The application uses a secure bridge to communicate with AO processes:
+
+### Development
+
+- The AO bridge runs as Vite middleware during development
+- All requests go through `/api/ao` endpoint
+- No direct browser-to-AO communication
+
+### Production
+
+- Deploy with Netlify Functions (included)
+- Serverless function handles AO relay communication
+- Environment variables secure sensitive data
+
+### Security Features
+
+- Action allowlist prevents unauthorized operations
+- Admin-gated sensitive actions (scrape, clear, reset, balance)
+- 10-second timeout with 2 retries
+- Robust error handling and logging
 
 ## 🔄 Switching from Mock to Real AO
 
-### Current Setup (Mock AO)
+### Current Setup (Real AO Bridge)
 
-The application currently uses a mock AO server for development:
+The application now uses a production-ready AO bridge:
 
 ```typescript
-// src/server/mockAo.ts
-// Provides mock data for all AO actions
+// server/aoBridge.ts
+// Forwards requests to AO relay with security and retries
 ```
 
-### Switching to Real AO
+### Configuration
 
-1. **Update environment variables**
+1. **Set environment variables**
 
    ```env
    VITE_USE_MOCK_AO=false
    VITE_AO_TARGET_ID=your-actual-ao-agent-id
+   AO_RELAY_URL=https://your-ao-relay-endpoint.com
+   AO_API_KEY=your-optional-api-key
    ```
 
-2. **Configure AO endpoint**
-   - The app uses `/api/ao` endpoint
-   - Update `vite.config.ts` to proxy to your AO gateway
-   - Or replace the mock middleware with real AO calls
-
-3. **Update AO client**
-   ```typescript
-   // src/lib/aoClient.ts
-   // Replace mock implementation with real AO calls
-   ```
+2. **Deploy to production**
+   - Netlify Functions automatically handle the bridge
+   - No additional configuration needed
 
 ### AO Client Implementation
 

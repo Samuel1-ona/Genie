@@ -12,6 +12,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:bridge": "node scripts/test-ao-bridge.js",
     "deploy": "dotenv -- ./scripts/deploy.sh"
   },
   "dependencies": {
@@ -72,6 +73,8 @@
     "@vitest/ui": "^2.1.8",
     "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "jsdom": "^25.0.1"
+    "jsdom": "^25.0.1",
+    "@netlify/functions": "^2.0.0",
+    "node-fetch": "^3.3.0"
   }
 }
