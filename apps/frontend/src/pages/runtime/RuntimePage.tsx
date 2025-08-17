@@ -28,7 +28,7 @@ export default function RuntimePage() {
     },
     cacheSize: {
       size: '246 MB',
-      status: 'normal' as const,
+      status: 'success' as const,
       items: 12568,
       lastPurge: '3d ago',
     },
@@ -54,7 +54,7 @@ export default function RuntimePage() {
     {
       platform: 'Snapshot',
       percentage: 42,
-      status: 'normal' as const,
+      status: 'success' as const,
       current: 840,
       limit: 2000,
       period: 'per hour',
@@ -62,7 +62,7 @@ export default function RuntimePage() {
     {
       platform: 'Discord API',
       percentage: 15,
-      status: 'normal' as const,
+      status: 'success' as const,
       current: 75,
       limit: 500,
       period: 'per minute',

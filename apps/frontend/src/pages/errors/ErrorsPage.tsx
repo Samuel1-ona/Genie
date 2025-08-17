@@ -193,7 +193,7 @@ export default function ErrorsPage() {
     end: searchParams.get('endDate') || '',
   });
   const [governanceId, setGovernanceId] = useState(
-    searchParams.get('governanceId') || ''
+    searchParams.get('governanceId') || 'all'
   );
   const [errorType, setErrorType] = useState(
     searchParams.get('errorType') || 'all'
@@ -225,14 +225,15 @@ export default function ErrorsPage() {
     const params = new URLSearchParams();
     if (dateRange.start) params.set('startDate', dateRange.start);
     if (dateRange.end) params.set('endDate', dateRange.end);
-    if (governanceId) params.set('governanceId', governanceId);
+    if (governanceId && governanceId !== 'all')
+      params.set('governanceId', governanceId);
     if (errorType !== 'all') params.set('errorType', errorType);
     setSearchParams(params);
   }, [dateRange, governanceId, errorType, setSearchParams]);
 
   const handleClearFilters = () => {
     setDateRange({ start: '', end: '' });
-    setGovernanceId('');
+    setGovernanceId('all');
     setErrorType('all');
   };
 
@@ -353,7 +354,7 @@ export default function ErrorsPage() {
                     <SelectValue placeholder="Filter by ID" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All IDs</SelectItem>
+                    <SelectItem value="all">All IDs</SelectItem>
                     {governanceIds.map(id => (
                       <SelectItem key={id} value={id}>
                         {id}

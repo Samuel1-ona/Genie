@@ -64,7 +64,12 @@ export function ErrorTable({
     }
 
     // Filter by governance ID
-    if (governanceId && error.governanceId !== governanceId) return false;
+    if (
+      governanceId &&
+      governanceId !== 'all' &&
+      error.governanceId !== governanceId
+    )
+      return false;
 
     // Filter by error type
     if (errorType !== 'all' && error.errorType !== errorType) return false;
