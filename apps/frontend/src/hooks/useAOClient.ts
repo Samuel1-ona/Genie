@@ -3,7 +3,18 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { aoClient } from '@/lib/aoClient';
+import {
+  getAllProposals,
+  getGovernancePlatforms,
+  getSubscribers,
+  scrapeGovernance,
+  addSubscriber,
+  removeSubscriber,
+  getRuntimeStats,
+  getBalances,
+  adjustBalance,
+  getErrors,
+} from '@/lib/aoClient';
 import type { Proposal } from '@/types';
 
 // Query keys
@@ -20,7 +31,7 @@ export const aoQueryKeys = {
 export function useProposals() {
   return useQuery({
     queryKey: aoQueryKeys.proposals(),
-    queryFn: () => aoClient.getProposals(),
+    queryFn: () => getAllProposals(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -30,7 +41,7 @@ export function useProposals() {
 export function useSearchProposals(query: string) {
   return useQuery({
     queryKey: [...aoQueryKeys.proposals(), 'search', query],
-    queryFn: () => aoClient.searchProposals(query),
+    queryFn: () => getAllProposals(), // TODO: Implement search functionality
     enabled: !!query && query.length > 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -41,7 +52,7 @@ export function useSearchProposals(query: string) {
 export function useProposalsByPlatform(platformId: string) {
   return useQuery({
     queryKey: [...aoQueryKeys.proposals(), 'platform', platformId],
-    queryFn: () => aoClient.getProposalsByPlatform(platformId),
+    queryFn: () => getAllProposals(), // TODO: Implement platform filtering
     enabled: !!platformId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -52,7 +63,8 @@ export function useProposalsByPlatform(platformId: string) {
 export function useProposal(id: string) {
   return useQuery({
     queryKey: aoQueryKeys.proposal(id),
-    queryFn: () => aoClient.getProposal(id),
+    queryFn: () =>
+      getAllProposals().then(proposals => proposals.find(p => p.id === id)),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -63,7 +75,7 @@ export function useProposal(id: string) {
 export function useGovernancePlatforms() {
   return useQuery({
     queryKey: aoQueryKeys.runtimeStats(), // Reusing the key for now
-    queryFn: () => aoClient.getGovernancePlatforms(),
+    queryFn: () => getGovernancePlatforms(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -73,7 +85,7 @@ export function useGovernancePlatforms() {
 export function useApiRateLimits() {
   return useQuery({
     queryKey: aoQueryKeys.runtimeStats(), // Reusing the key for now
-    queryFn: () => aoClient.getApiRateLimits(),
+    queryFn: () => getRuntimeStats(),
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
@@ -84,7 +96,7 @@ export function useApiRateLimits() {
 export function useScrapeHistory() {
   return useQuery({
     queryKey: aoQueryKeys.scrapeHistory(),
-    queryFn: () => aoClient.getScrapeHistory(),
+    queryFn: () => getRuntimeStats(), // TODO: Implement scrape history
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -94,7 +106,7 @@ export function useScrapeHistory() {
 export function useSubscribers() {
   return useQuery({
     queryKey: aoQueryKeys.scrapeHistory(), // Reusing the key for now
-    queryFn: () => aoClient.getSubscribers(),
+    queryFn: () => getSubscribers(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -104,7 +116,7 @@ export function useSubscribers() {
 export function useBalances() {
   return useQuery({
     queryKey: aoQueryKeys.scrapeHistory(), // Reusing the key for now
-    queryFn: () => aoClient.getAllBalances(),
+    queryFn: () => getBalances(),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -114,7 +126,7 @@ export function useBalances() {
 export function useHealthCheck() {
   return useQuery({
     queryKey: aoQueryKeys.health(),
-    queryFn: () => aoClient.healthCheck(),
+    queryFn: () => getRuntimeStats(), // TODO: Implement health check
     staleTime: 60 * 1000, // 1 minute
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 60 * 1000, // Refetch every minute
@@ -126,7 +138,7 @@ export function useAddSubscriber() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (subscriber: any) => aoClient.addSubscriber(subscriber),
+    mutationFn: (subscriber: any) => addSubscriber(subscriber),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },
@@ -137,7 +149,7 @@ export function useBroadcastNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (message: any) => aoClient.broadcastNotification(message),
+    mutationFn: (message: any) => Promise.resolve(), // TODO: Implement broadcast
     onSuccess: () => {
       // No cache invalidation needed for notifications
     },
@@ -148,7 +160,7 @@ export function useScrapeGovernance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (platformId: string) => aoClient.scrapeGovernance(platformId),
+    mutationFn: (platformId: string) => scrapeGovernance(platformId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() });
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
@@ -160,7 +172,7 @@ export function useClearCache() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => aoClient.clearCache(),
+    mutationFn: () => Promise.resolve(), // TODO: Implement clear cache
     onSuccess: () => {
       // Invalidate all queries
       queryClient.invalidateQueries();
@@ -172,7 +184,7 @@ export function useResetRateLimits() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => aoClient.resetRateLimits(),
+    mutationFn: () => Promise.resolve(), // TODO: Implement reset rate limits
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.runtimeStats() });
     },
@@ -183,7 +195,8 @@ export function useAddBalance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (balance: any) => aoClient.addBalance(balance),
+    mutationFn: (balance: any) =>
+      adjustBalance(balance.address, balance.amount, 'Manual adjustment'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },

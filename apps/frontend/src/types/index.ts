@@ -12,6 +12,77 @@ export type ProposalStatus =
   | 'canceled'
   | 'expired';
 
+// Bonus: Sample Types (as requested)
+export interface Proposal {
+  id: string;
+  title: string;
+  description?: string;
+  content?: string;
+  proposer?: string;
+  platform: string;
+  governance_platform_id?: string;
+  status: ProposalStatus;
+  url?: string;
+  deadline?: number;
+  created_at?: number;
+  updated_at?: number;
+  executed_at?: number;
+  canceled_at?: number;
+  for_votes?: number;
+  against_votes?: number;
+  abstain_votes?: number;
+  quorum?: number;
+  total_votes?: number;
+  execution_time?: number;
+  timelock_id?: string;
+  metadata?: Record<string, any>;
+  actions?: any[];
+  tags?: string[];
+  category?: string;
+}
+
+export interface GovernancePlatform {
+  id: string;
+  name: string;
+  url?: string;
+  proposals_count?: number;
+  last_updated?: number;
+  scrape_status?: 'ok' | 'warning' | 'error' | 'idle';
+}
+
+export type Subscriber =
+  | {
+      type: 'discord';
+      webhook_url: string;
+      active: boolean;
+      last_success?: number;
+    }
+  | {
+      type: 'telegram';
+      chat_id: string;
+      active: boolean;
+      last_success?: number;
+    };
+
+export interface ScrapeHistory {
+  timestamp: number;
+  governanceId: string;
+  status: 'success' | 'rate_limited' | 'error';
+  message?: string;
+}
+
+export interface RateLimit {
+  governanceId: string;
+  remaining: number;
+  resetAt: number;
+}
+
+export interface Balance {
+  address: string;
+  amount: number;
+  updated_at: number;
+}
+
 // Base entity interface
 export interface BaseEntity {
   id: string;

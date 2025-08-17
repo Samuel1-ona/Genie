@@ -1,42 +1,60 @@
 /**
- * Environment configuration with safe getters
- * Throws clear errors if required environment variables are missing
+ * Environment configuration
  */
 
-interface EnvConfig {
-  AO_TARGET_ID: string;
-  TALLY_BASE_URL: string;
-}
-
-function getRequiredEnvVar(key: string): string {
+export function getEnv(key: string): string {
   const value = import.meta.env[key];
   if (!value) {
-    throw new Error(
-      `Missing required environment variable: ${key}. Please check your .env file and ensure ${key} is set.`
-    );
+    throw new Error(`Environment variable ${key} is not set`);
   }
   return value;
 }
 
-// Removed unused function
-
-export const env: EnvConfig = {
-  AO_TARGET_ID: getRequiredEnvVar('VITE_AO_TARGET_ID'),
-  TALLY_BASE_URL: getRequiredEnvVar('VITE_TALLY_BASE_URL'),
-};
-
-// Validate environment on import
-export function validateEnv(): void {
-  try {
-    // This will throw if any required env vars are missing
-    void env.AO_TARGET_ID;
-    void env.TALLY_BASE_URL;
-  } catch (error) {
-    console.error('Environment validation failed:', error);
-    throw error;
-  }
+export function getEnvOptional(key: string): string | undefined {
+  return import.meta.env[key];
 }
 
-// Export individual getters for convenience
-export const getAOTargetId = (): string => env.AO_TARGET_ID;
-export const getTallyBaseUrl = (): string => env.TALLY_BASE_URL;
+export function getEnvBoolean(
+  key: string,
+  defaultValue: boolean = false
+): boolean {
+  const value = import.meta.env[key];
+  if (value === undefined) return defaultValue;
+  return value === 'true' || value === '1';
+}
+
+export function getEnvNumber(key: string, defaultValue: number): number {
+  const value = import.meta.env[key];
+  if (value === undefined) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return defaultValue;
+  return parsed;
+}
+
+// Environment configuration object
+export const env = {
+  // AO Configuration
+  AO_TARGET_ID: getEnv('VITE_AO_TARGET_ID'),
+
+  // API Endpoints
+  TALLY_BASE_URL: getEnv('VITE_TALLY_BASE_URL'),
+  API_BASE_URL: getEnvOptional('VITE_API_BASE_URL') || 'http://localhost:3000',
+
+  // Feature Flags
+  USE_MOCK_AO: getEnvBoolean('VITE_USE_MOCK_AO', true),
+  ENABLE_ANALYTICS: getEnvBoolean('VITE_ENABLE_ANALYTICS', false),
+  ENABLE_DEBUG_MODE: getEnvBoolean('VITE_ENABLE_DEBUG_MODE', false),
+
+  // External Services
+  DISCORD_WEBHOOK_URL: getEnvOptional('VITE_DISCORD_WEBHOOK_URL'),
+  TELEGRAM_BOT_TOKEN: getEnvOptional('VITE_TELEGRAM_BOT_TOKEN'),
+  TELEGRAM_CHAT_ID: getEnvOptional('VITE_TELEGRAM_CHAT_ID'),
+
+  // Development
+  NODE_ENV: import.meta.env.MODE,
+  IS_DEV: import.meta.env.DEV,
+  IS_PROD: import.meta.env.PROD,
+} as const;
+
+// Type for environment variables
+export type EnvConfig = typeof env;

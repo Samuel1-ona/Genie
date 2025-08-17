@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "deploy": "dotenv -- ./scripts/deploy.sh",
-    "preview": "vite preview"
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "deploy": "dotenv -- ./scripts/deploy.sh"
   },
   "dependencies": {
     "@permaweb/aoconnect": "^0.0.56",
@@ -63,6 +67,11 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "prettier": "^3.6.2",
     "typescript": "^5.2.2",
-    "vite": "^5.3.4"
+    "vite": "^5.3.4",
+    "vitest": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "jsdom": "^25.0.1"
   }
 }

@@ -3,205 +3,107 @@
  * Features: requestId, timeout, retries, JSON encode/decode, normalized errors
  */
 
-import { env } from '@/config/env';
-import type { AOMessage, ApiResponse, ApiError } from '@/types';
+import { getEnv } from '@/config/env';
 
-// Generate unique request ID
-function generateRequestId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+type AOEnvelope = {
+  Target: string;
+  Action: string;
+  Data?: string;
+  Tags?: Record<string, string>;
+};
+
+function sleep(ms: number) {
+  return new Promise(res => setTimeout(res, ms));
 }
 
-// Convert to AO message format
-export function toAOMessage({
-  Target,
-  Action,
-  Data,
-  Tags,
-}: AOMessage): AOMessage {
-  return {
-    Target,
-    Action,
-    Data: Data ? JSON.stringify(Data) : undefined,
-    Tags,
-  };
-}
-
-// Exponential backoff delay
-function getBackoffDelay(attempt: number, baseDelay: number = 1000): number {
-  return Math.min(baseDelay * Math.pow(2, attempt), 10000); // Max 10 seconds
-}
-
-// Normalize errors
-function normalizeError(error: any, requestId: string): ApiError {
-  if (error.name === 'AbortError') {
-    return {
-      code: 'TIMEOUT',
-      message: 'Request timed out',
-      requestId,
-    };
-  }
-
-  if (error.name === 'TypeError' && error.message.includes('fetch')) {
-    return {
-      code: 'NETWORK_ERROR',
-      message: 'Network error - unable to connect to AO process',
-      requestId,
-    };
-  }
-
-  return {
-    code: error.code || 'UNKNOWN_ERROR',
-    message: error.message || 'An unknown error occurred',
-    details: error.details || error,
-    requestId,
-  };
-}
-
-// Main AO send function
 export async function aoSend<T>(
   action: string,
   data?: any,
   tags?: Record<string, string>
 ): Promise<T> {
-  const requestId = generateRequestId();
-  const maxRetries = 2;
-  const timeout = 10000; // 10 seconds
+  const Target = getEnv('VITE_AO_TARGET_ID');
+  const body: AOEnvelope = {
+    Target,
+    Action: action,
+    Data: data ? JSON.stringify(data) : undefined,
+    Tags: tags,
+  };
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  let lastError: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), timeout);
-
-      const message = toAOMessage({
-        Target: env.AO_TARGET_ID,
-        Action: action,
-        Data: data,
-        Tags: {
-          ...tags,
-          'Request-Id': requestId,
-          Attempt: attempt.toString(),
-        },
-      });
-
-      const response = await fetch('/api/ao', {
+      const res = await fetch('/api/ao', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
-        },
-        body: JSON.stringify({
-          action: message.Action,
-          data: message.Data ? JSON.parse(message.Data) : undefined,
-          tags: message.Tags,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.ok) {
-        throw new Error(result.error || 'AO process returned an error');
-      }
-
-      return result.data as T;
-    } catch (error) {
-      const normalizedError = normalizeError(error, requestId);
-
-      // If this is the last attempt, throw the error
-      if (attempt === maxRetries) {
-        console.error(`AO request failed after ${maxRetries + 1} attempts:`, {
-          action,
-          requestId,
-          error: normalizedError,
-        });
-        throw normalizedError;
-      }
-
-      // Wait before retrying
-      const delay = getBackoffDelay(attempt);
-      console.warn(`AO request failed, retrying in ${delay}ms:`, {
-        action,
-        requestId,
-        attempt: attempt + 1,
-        error: normalizedError,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, delay));
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`AO HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.ok === false) throw new Error(json.error || 'AO returned error');
+      return json.data as T;
+    } catch (e) {
+      lastError = e;
+      // basic exponential backoff
+      await sleep(400 * (attempt + 1));
     }
   }
-
-  // This should never be reached, but TypeScript requires it
-  throw new Error('Unexpected error in aoSend');
+  throw new Error(`aoSend(${action}) failed: ${String(lastError)}`);
 }
 
-// Convenience functions for common AO operations
-export const aoClient = {
-  // Get proposals
-  getProposals: () => aoSend<any[]>('GetAllProposals'),
+// Helper function to get environment variables
+function getEnv(key: string): string {
+  const value = import.meta.env[key];
+  if (!value) {
+    throw new Error(`Environment variable ${key} is not set`);
+  }
+  return value;
+}
 
-  // Get proposal by ID
-  getProposal: (id: string) => aoSend<any>('GetProposal', { id }),
+// Example usage functions
+export async function getAllProposals(): Promise<any[]> {
+  return aoSend<any[]>('GetAllProposals');
+}
 
-  // Search proposals
-  searchProposals: (query: string) =>
-    aoSend<any[]>('SearchProposals', { query }),
+export async function getGovernancePlatforms(): Promise<any[]> {
+  return aoSend<any[]>('GetGovernancePlatforms');
+}
 
-  // Get proposals by platform
-  getProposalsByPlatform: (platformId: string) =>
-    aoSend<any[]>('GetProposalsByPlatform', { platformId }),
+export async function getSubscribers(): Promise<any[]> {
+  return aoSend<any[]>('GetSubscribers');
+}
 
-  // Get governance platforms
-  getGovernancePlatforms: () => aoSend<any[]>('GetGovernancePlatforms'),
+export async function scrapeGovernance(platformId: string): Promise<any> {
+  return aoSend<any>('ScrapeGovernance', { platformId });
+}
 
-  // Scrape governance
-  scrapeGovernance: (platformId: string) =>
-    aoSend<any>('ScrapeGovernance', { platformId }),
+export async function addSubscriber(subscriber: any): Promise<any> {
+  return aoSend<any>('AddSubscriber', subscriber);
+}
 
-  // Get subscribers
-  getSubscribers: () => aoSend<any[]>('GetSubscribers'),
+export async function removeSubscriber(subscriberId: string): Promise<any> {
+  return aoSend<any>('RemoveSubscriber', { subscriberId });
+}
 
-  // Add subscriber
-  addSubscriber: (subscriber: any) => aoSend<any>('AddSubscriber', subscriber),
+export async function getRuntimeStats(): Promise<any> {
+  return aoSend<any>('GetRuntimeStats');
+}
 
-  // Broadcast notification
-  broadcastNotification: (message: any) =>
-    aoSend<any>('BroadcastNotification', message),
+export async function getBalances(): Promise<any[]> {
+  return aoSend<any[]>('GetBalances');
+}
 
-  // Get scrape history
-  getScrapeHistory: () => aoSend<any[]>('GetScrapingHistory'),
+export async function adjustBalance(
+  address: string,
+  amount: number,
+  reason: string
+): Promise<any> {
+  return aoSend<any>('AdjustBalance', { address, amount, reason });
+}
 
-  // Get API rate limits
-  getApiRateLimits: () => aoSend<any>('GetApiRateLimits'),
-
-  // Get cached data
-  getCachedData: () => aoSend<any>('GetCachedData'),
-
-  // Get API call counts
-  getApiCallCounts: () => aoSend<any>('GetApiCallCounts'),
-
-  // Get error logs
-  getErrorLogs: () => aoSend<any[]>('GetErrorLogs'),
-
-  // Clear cache
-  clearCache: () => aoSend<any>('ClearCache'),
-
-  // Reset rate limits
-  resetRateLimits: () => aoSend<any>('ResetRateLimits'),
-
-  // Get all balances
-  getAllBalances: () => aoSend<any[]>('GetAllBalances'),
-
-  // Get balance
-  getBalance: (walletAddress: string, tokenAddress?: string) =>
-    aoSend<any>('GetBalance', { walletAddress, tokenAddress }),
-
-  // Add balance
-  addBalance: (balance: any) => aoSend<any>('AddBalance', balance),
-
-  // Health check
-  healthCheck: () => aoSend<{ status: string }>('HealthCheck'),
-};
+export async function getErrors(): Promise<any[]> {
+  return aoSend<any[]>('GetErrors');
+}
