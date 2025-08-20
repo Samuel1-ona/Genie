@@ -1,7 +1,7 @@
 import { ConnectButton } from "arweave-wallet-kit";
 import "./App.css";
-import Counter from "./components/counter";
-import COUNTER from "./constants/counter_process";
+import GenieGovernance from "./components/GenieGovernance";
+import GENIE_PROCESS from "./constants/genie_process";
 import aoLogo from "/ao.svg";
 import reactLogo from "/react.svg";
 import viteLogo from "/vite.svg";
@@ -20,27 +20,26 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>Vite + React + AO</h1>
+      <h1>Genie Governance System</h1>
       <p className="read-the-docs">
-        AO Books Process:{" "}
+        Genie Process:{" "}
         <a
-          href={`https://www.ao.link/#/entity/${COUNTER}`}
+          href={`https://www.ao.link/#/entity/${GENIE_PROCESS}`}
           target="_blank"
           rel="noreferrer"
         >
-          {COUNTER}
+          {GENIE_PROCESS}
         </a>
       </p>
       <div className="card">
         <div>
           <ConnectButton profileModal={true} showBalance={true} />
         </div>
-        <Counter />
+        <GenieGovernance />
       </div>
       <p>
-        Project scaffolded using{" "}
-        <a href="https://create-ao-dapp.dev">create-ao-dapp</a>. Built with ❤️
-        by Autonomous Research
+        Decentralized Governance Data Management System. Built with ❤️
+        by Genie Team
       </p>
     </>
   );
