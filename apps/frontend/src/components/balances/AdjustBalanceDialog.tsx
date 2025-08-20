@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Plus, Minus } from 'lucide-react';
+import { adminAdjustBalance } from '@/lib/adminClient';
 
 interface Balance {
   id: string;
@@ -69,6 +70,11 @@ export function AdjustBalanceDialog({
 
     try {
       const finalAmount = adjustmentType === 'add' ? numAmount : -numAmount;
+
+      // Use admin client for balance adjustment
+      await adminAdjustBalance(balance.address, finalAmount, reason);
+
+      // Call the original onAdjust callback
       await onAdjust(finalAmount);
 
       // Reset form
@@ -77,6 +83,7 @@ export function AdjustBalanceDialog({
       setAdjustmentType('add');
     } catch (error) {
       console.error('Failed to adjust balance:', error);
+      throw error; // Re-throw to show error in UI
     } finally {
       setIsSubmitting(false);
     }

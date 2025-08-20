@@ -10,6 +10,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Play, Trash2, RefreshCw, Wrench, AlertTriangle } from 'lucide-react';
+import {
+  adminScrapeGovernance,
+  adminClearCache,
+  adminResetRateLimits,
+} from '@/lib/adminClient';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -96,24 +101,36 @@ export function Controls() {
   });
 
   const handleRunScrape = async () => {
-    // TODO: Implement run scrape API call
-    console.log('Running scrape now...');
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      console.log('Running scrape now...');
+      await adminScrapeGovernance('all'); // Scrape all platforms
+      console.log('Scrape completed successfully');
+    } catch (error) {
+      console.error('Scrape failed:', error);
+      throw error;
+    }
   };
 
   const handleClearCache = async () => {
-    // TODO: Implement clear cache API call
-    console.log('Clearing cache...');
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      console.log('Clearing cache...');
+      await adminClearCache();
+      console.log('Cache cleared successfully');
+    } catch (error) {
+      console.error('Clear cache failed:', error);
+      throw error;
+    }
   };
 
   const handleResetRateLimits = async () => {
-    // TODO: Implement reset rate limits API call
-    console.log('Resetting rate limits...');
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      console.log('Resetting rate limits...');
+      await adminResetRateLimits();
+      console.log('Rate limits reset successfully');
+    } catch (error) {
+      console.error('Reset rate limits failed:', error);
+      throw error;
+    }
   };
 
   const handleRepairDatabase = async () => {

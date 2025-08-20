@@ -1,4 +1,5 @@
 import { aoSend } from '@/lib/aoClient';
+import { adminScrapeGovernance } from '@/lib/adminClient';
 import type { GovernancePlatform } from '@/types';
 
 export const governanceApi = {
@@ -10,19 +11,15 @@ export const governanceApi = {
   },
 
   /**
-   * Scrape governance data for a specific platform
+   * Scrape governance data for a specific platform (admin only)
    */
   async scrape(
     governanceId: string,
     name?: string,
     url?: string
   ): Promise<{ count: number; refreshedAt: number }> {
-    const result = await aoSend<any>('ScrapeGovernance', { 
-      platformId: governanceId,
-      name,
-      url 
-    });
-    
+    const result = await adminScrapeGovernance(governanceId);
+
     return {
       count: result.proposalsScraped || 0,
       refreshedAt: Date.now(),
@@ -35,10 +32,11 @@ export const governanceApi = {
   async status(): Promise<{ ok: boolean; lastRun?: number }> {
     try {
       const history = await aoSend<any[]>('GetScrapingHistory');
-      const lastRun = history.length > 0 
-        ? new Date(history[0].createdAt).getTime()
-        : undefined;
-      
+      const lastRun =
+        history.length > 0
+          ? new Date(history[0].createdAt).getTime()
+          : undefined;
+
       return {
         ok: true,
         lastRun,

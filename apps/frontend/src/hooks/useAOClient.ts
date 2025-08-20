@@ -7,14 +7,18 @@ import {
   getAllProposals,
   getGovernancePlatforms,
   getSubscribers,
-  scrapeGovernance,
   addSubscriber,
   removeSubscriber,
   getRuntimeStats,
   getBalances,
-  adjustBalance,
   getErrors,
 } from '@/lib/aoClient';
+import {
+  adminScrapeGovernance,
+  adminClearCache,
+  adminResetRateLimits,
+  adminAddBalance,
+} from '@/lib/adminClient';
 import type { Proposal } from '@/types';
 
 // Query keys
@@ -160,7 +164,7 @@ export function useScrapeGovernance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (platformId: string) => scrapeGovernance(platformId),
+    mutationFn: (platformId: string) => adminScrapeGovernance(platformId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() });
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
@@ -172,7 +176,7 @@ export function useClearCache() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => Promise.resolve(), // TODO: Implement clear cache
+    mutationFn: () => adminClearCache(),
     onSuccess: () => {
       // Invalidate all queries
       queryClient.invalidateQueries();
@@ -184,7 +188,7 @@ export function useResetRateLimits() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => Promise.resolve(), // TODO: Implement reset rate limits
+    mutationFn: () => adminResetRateLimits(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.runtimeStats() });
     },
@@ -196,7 +200,7 @@ export function useAddBalance() {
 
   return useMutation({
     mutationFn: (balance: any) =>
-      adjustBalance(balance.address, balance.amount, 'Manual adjustment'),
+      adminAddBalance(balance.address, balance.amount, 'Manual adjustment'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },

@@ -13,6 +13,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:bridge": "node scripts/test-ao-bridge.js",
+    "test:admin": "node scripts/test-admin-gating.js",
     "deploy": "dotenv -- ./scripts/deploy.sh"
   },
   "dependencies": {

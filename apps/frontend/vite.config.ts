@@ -8,6 +8,7 @@ function aoApiPlugin() {
   return {
     name: 'ao-api-plugin',
     configureServer(server) {
+      // AO Bridge endpoint
       server.middlewares.use('/api/ao', async (req, res, next) => {
         if (req.method === 'POST') {
           console.log('AO Bridge triggered');
@@ -85,6 +86,110 @@ function aoApiPlugin() {
             });
           } catch (error) {
             console.error('Error in AO Bridge middleware:', error);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(
+              JSON.stringify({
+                ok: false,
+                error: 'Internal server error',
+              })
+            );
+          }
+        } else if (req.method === 'OPTIONS') {
+          // Handle CORS preflight
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+          res.statusCode = 200;
+          res.end();
+        } else {
+          next();
+        }
+      });
+
+      // Admin command endpoint
+      server.middlewares.use('/api/admin/command', async (req, res, next) => {
+        if (req.method === 'POST') {
+          console.log('Admin command triggered');
+          try {
+            // Parse request body
+            let body = '';
+            req.on('data', chunk => {
+              body += chunk.toString();
+            });
+
+            req.on('end', async () => {
+              try {
+                const requestBody = JSON.parse(body);
+                console.log('Admin command request:', requestBody);
+
+                // Import and call admin command handler
+                const { adminCommand } = await import(
+                  './server/adminCommand.ts'
+                );
+
+                // Create mock Express-like request/response objects
+                const mockReq = {
+                  body: requestBody,
+                  method: req.method,
+                  headers: req.headers,
+                  protocol: 'http',
+                  get: (name: string) => req.headers[name.toLowerCase()],
+                } as any;
+
+                const mockRes = {
+                  status: (code: number) => ({
+                    json: (data: any) => {
+                      res.statusCode = code;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.setHeader('Access-Control-Allow-Origin', '*');
+                      res.setHeader(
+                        'Access-Control-Allow-Methods',
+                        'POST, OPTIONS'
+                      );
+                      res.setHeader(
+                        'Access-Control-Allow-Headers',
+                        'Content-Type'
+                      );
+                      res.end(JSON.stringify(data));
+                    },
+                  }),
+                  json: (data: any) => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.setHeader(
+                      'Access-Control-Allow-Methods',
+                      'POST, OPTIONS'
+                    );
+                    res.setHeader(
+                      'Access-Control-Allow-Headers',
+                      'Content-Type'
+                    );
+                    res.end(JSON.stringify(data));
+                  },
+                } as any;
+
+                await adminCommand(mockReq, mockRes);
+              } catch (error) {
+                console.error('Error in Admin Command:', error);
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.end(
+                  JSON.stringify({
+                    ok: false,
+                    error:
+                      error instanceof Error
+                        ? error.message
+                        : 'Internal server error',
+                  })
+                );
+              }
+            });
+          } catch (error) {
+            console.error('Error in Admin Command middleware:', error);
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');

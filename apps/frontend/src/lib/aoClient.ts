@@ -76,8 +76,11 @@ export async function getSubscribers(): Promise<any[]> {
   return aoSend<any[]>('GetSubscribers');
 }
 
+// Note: Use adminScrapeGovernance from adminClient for sensitive actions
 export async function scrapeGovernance(platformId: string): Promise<any> {
-  return aoSend<any>('ScrapeGovernance', { platformId });
+  throw new Error(
+    'Use adminScrapeGovernance from adminClient for sensitive actions'
+  );
 }
 
 export async function addSubscriber(subscriber: any): Promise<any> {
@@ -96,12 +99,15 @@ export async function getBalances(): Promise<any[]> {
   return aoSend<any[]>('GetBalances');
 }
 
+// Note: Use adminAdjustBalance from adminClient for sensitive actions
 export async function adjustBalance(
   address: string,
   amount: number,
   reason: string
 ): Promise<any> {
-  return aoSend<any>('AdjustBalance', { address, amount, reason });
+  throw new Error(
+    'Use adminAdjustBalance from adminClient for sensitive actions'
+  );
 }
 
 export async function getErrors(): Promise<any[]> {

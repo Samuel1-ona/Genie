@@ -1,4 +1,5 @@
 import { aoSend } from '@/lib/aoClient';
+import { adminClearCache, adminResetRateLimits } from '@/lib/adminClient';
 import type { ScrapeHistory, RateLimit } from '@/types';
 
 export const runtimeApi = {
@@ -27,14 +28,21 @@ export const runtimeApi = {
     const cacheData = await aoSend<any>('GetCachedData');
     return {
       size: cacheData.cacheSize ? parseInt(cacheData.cacheSize) : 0,
-      keys: cacheData.proposals + cacheData.platforms + cacheData.subscribers + cacheData.balances,
+      keys:
+        cacheData.proposals +
+        cacheData.platforms +
+        cacheData.subscribers +
+        cacheData.balances,
     };
   },
 
   /**
    * Get API call counts
    */
-  async apiCounts(): Promise<{ last24h: number; perPlatform: Record<string, number> }> {
+  async apiCounts(): Promise<{
+    last24h: number;
+    perPlatform: Record<string, number>;
+  }> {
     const counts = await aoSend<any>('GetApiCallCounts');
     return {
       last24h: counts.today || 0,
@@ -45,7 +53,9 @@ export const runtimeApi = {
   /**
    * Get error logs
    */
-  async errors(): Promise<{ timestamp: number; governanceId: string; message: string }[]> {
+  async errors(): Promise<
+    { timestamp: number; governanceId: string; message: string }[]
+  > {
     const errorLogs = await aoSend<any[]>('GetErrorLogs');
     return errorLogs.map(log => ({
       timestamp: new Date(log.timestamp).getTime(),
@@ -55,11 +65,11 @@ export const runtimeApi = {
   },
 
   /**
-   * Clear cache
+   * Clear cache (admin only)
    */
   async clearCache(): Promise<{ ok: boolean }> {
     try {
-      await aoSend<any>('ClearCache');
+      await adminClearCache();
       return { ok: true };
     } catch (error) {
       return { ok: false };
@@ -67,11 +77,11 @@ export const runtimeApi = {
   },
 
   /**
-   * Reset rate limits
+   * Reset rate limits (admin only)
    */
   async resetLimits(): Promise<{ ok: boolean }> {
     try {
-      await aoSend<any>('ResetRateLimits');
+      await adminResetRateLimits();
       return { ok: true };
     } catch (error) {
       return { ok: false };

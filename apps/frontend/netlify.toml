@@ -12,6 +12,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/admin/command"
+  to = "/.netlify/functions/admin-command"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/api/*"
   [headers.values]
