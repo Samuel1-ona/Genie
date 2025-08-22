@@ -1,4 +1,4 @@
-import { aoSend } from '@/lib/aoClient';
+import { aoSend, aoSendAdmin } from '@/lib/aoClient';
 import type { Subscriber, Proposal } from '@/types';
 
 export const notificationsApi = {
@@ -22,14 +22,14 @@ export const notificationsApi = {
   },
 
   /**
-   * Broadcast a notification about a proposal
+   * Broadcast a notification about a proposal (admin only)
    */
   async broadcast(
     summary: string,
     proposal: Pick<Proposal, 'id' | 'title' | 'url'>
   ): Promise<{ ok: boolean }> {
     try {
-      await aoSend<any>('BroadcastNotification', {
+      await aoSendAdmin<any>('BroadcastNotification', {
         summary,
         proposal,
         timestamp: Date.now(),

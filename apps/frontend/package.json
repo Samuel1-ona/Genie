@@ -14,6 +14,7 @@
     "test:run": "vitest run",
     "test:bridge": "node scripts/test-ao-bridge.js",
     "test:admin": "node scripts/test-admin-gating.js",
+    "test:wiring": "node scripts/test-frontend-wiring.js",
     "deploy": "dotenv -- ./scripts/deploy.sh"
   },
   "dependencies": {

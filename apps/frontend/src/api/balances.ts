@@ -1,5 +1,4 @@
-import { aoSend } from '@/lib/aoClient';
-import { adminAddBalance } from '@/lib/adminClient';
+import { aoSend, aoSendAdmin } from '@/lib/aoClient';
 import type { Balance } from '@/types';
 
 export const balancesApi = {
@@ -32,7 +31,15 @@ export const balancesApi = {
    */
   async add(address: string, amount: number): Promise<{ ok: boolean }> {
     try {
-      await adminAddBalance(address, amount, 'Admin balance adjustment');
+      await aoSendAdmin<any>('AddBalance', {
+        walletAddress: address,
+        balance: amount.toString(),
+        tokenAddress: '0x0000000000000000000000000000000000000000', // ETH
+        tokenSymbol: 'ETH',
+        tokenName: 'Ethereum',
+        decimals: 18,
+        network: 'ethereum',
+      });
       return { ok: true };
     } catch (error) {
       return { ok: false };

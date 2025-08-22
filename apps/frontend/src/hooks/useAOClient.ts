@@ -7,18 +7,16 @@ import {
   getAllProposals,
   getGovernancePlatforms,
   getSubscribers,
+  scrapeGovernance,
   addSubscriber,
   removeSubscriber,
   getRuntimeStats,
   getBalances,
+  adjustBalance,
   getErrors,
+  aoSend,
+  aoSendAdmin,
 } from '@/lib/aoClient';
-import {
-  adminScrapeGovernance,
-  adminClearCache,
-  adminResetRateLimits,
-  adminAddBalance,
-} from '@/lib/adminClient';
 import type { Proposal } from '@/types';
 
 // Query keys
@@ -164,7 +162,7 @@ export function useScrapeGovernance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (platformId: string) => adminScrapeGovernance(platformId),
+    mutationFn: (platformId: string) => scrapeGovernance(platformId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() });
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.proposals() });
@@ -176,7 +174,7 @@ export function useClearCache() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => adminClearCache(),
+    mutationFn: () => aoSendAdmin<any>('ClearCache'),
     onSuccess: () => {
       // Invalidate all queries
       queryClient.invalidateQueries();
@@ -188,7 +186,7 @@ export function useResetRateLimits() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => adminResetRateLimits(),
+    mutationFn: () => aoSendAdmin<any>('ResetRateLimits'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.runtimeStats() });
     },
@@ -200,7 +198,7 @@ export function useAddBalance() {
 
   return useMutation({
     mutationFn: (balance: any) =>
-      adminAddBalance(balance.address, balance.amount, 'Manual adjustment'),
+      adjustBalance(balance.address, balance.amount, 'Manual adjustment'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aoQueryKeys.scrapeHistory() }); // Reusing key
     },

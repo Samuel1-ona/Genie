@@ -1,19 +1,9 @@
 /**
  * Admin client for sensitive AO actions
- * Calls the admin command endpoint which handles HMAC authentication
+ * Uses aoSendAdmin from aoClient for consistent error handling and retries
  */
 
-interface AdminCommandRequest {
-  action: string;
-  data?: any;
-  tags?: Record<string, string>;
-}
-
-interface AdminCommandResponse {
-  ok: boolean;
-  data?: any;
-  error?: string;
-}
+import { aoSendAdmin } from './aoClient';
 
 /**
  * Send admin command to AO bridge
@@ -24,36 +14,7 @@ export async function adminSend<T>(
   data?: any,
   tags?: Record<string, string>
 ): Promise<T> {
-  const payload: AdminCommandRequest = {
-    action,
-    data,
-    tags,
-  };
-
-  const response = await fetch('/api/admin/command', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response
-      .json()
-      .catch(() => ({ error: 'Unknown error' }));
-    throw new Error(
-      errorData.error || `Admin command failed: ${response.status}`
-    );
-  }
-
-  const result: AdminCommandResponse = await response.json();
-
-  if (!result.ok) {
-    throw new Error(result.error || 'Admin command returned error');
-  }
-
-  return result.data as T;
+  return aoSendAdmin<T>(action, data, tags);
 }
 
 // Admin-specific AO functions for sensitive actions

@@ -1,5 +1,4 @@
-import { aoSend } from '@/lib/aoClient';
-import { adminClearCache, adminResetRateLimits } from '@/lib/adminClient';
+import { aoSend, aoSendAdmin } from '@/lib/aoClient';
 import type { ScrapeHistory, RateLimit } from '@/types';
 
 export const runtimeApi = {
@@ -69,7 +68,7 @@ export const runtimeApi = {
    */
   async clearCache(): Promise<{ ok: boolean }> {
     try {
-      await adminClearCache();
+      await aoSendAdmin<any>('ClearCache');
       return { ok: true };
     } catch (error) {
       return { ok: false };
@@ -81,7 +80,7 @@ export const runtimeApi = {
    */
   async resetLimits(): Promise<{ ok: boolean }> {
     try {
-      await adminResetRateLimits();
+      await aoSendAdmin<any>('ResetRateLimits');
       return { ok: true };
     } catch (error) {
       return { ok: false };

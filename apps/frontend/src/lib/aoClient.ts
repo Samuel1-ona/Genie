@@ -12,10 +12,20 @@ type AOEnvelope = {
   Tags?: Record<string, string>;
 };
 
+type AdminCommandRequest = {
+  action: string;
+  data?: any;
+  tags?: Record<string, string>;
+};
+
 function sleep(ms: number) {
   return new Promise(res => setTimeout(res, ms));
 }
 
+/**
+ * Send request to regular AO bridge endpoint
+ * Used for non-sensitive actions that don't require admin authentication
+ */
 export async function aoSend<T>(
   action: string,
   data?: any,
@@ -54,6 +64,48 @@ export async function aoSend<T>(
   throw new Error(`aoSend(${action}) failed: ${String(lastError)}`);
 }
 
+/**
+ * Send request to admin command endpoint
+ * Used for sensitive actions that require admin authentication
+ * The server-side endpoint handles HMAC signature generation
+ */
+export async function aoSendAdmin<T>(
+  action: string,
+  data?: any,
+  tags?: Record<string, string>
+): Promise<T> {
+  const payload: AdminCommandRequest = {
+    action,
+    data,
+    tags,
+  };
+
+  let lastError: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch('/api/admin/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`Admin command HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.ok === false)
+        throw new Error(json.error || 'Admin command returned error');
+      return json.data as T;
+    } catch (e) {
+      lastError = e;
+      // basic exponential backoff
+      await sleep(400 * (attempt + 1));
+    }
+  }
+  throw new Error(`aoSendAdmin(${action}) failed: ${String(lastError)}`);
+}
+
 // Helper function to get environment variables
 function getEnv(key: string): string {
   const value = import.meta.env[key];
@@ -76,11 +128,9 @@ export async function getSubscribers(): Promise<any[]> {
   return aoSend<any[]>('GetSubscribers');
 }
 
-// Note: Use adminScrapeGovernance from adminClient for sensitive actions
+// Sensitive action - requires admin authentication
 export async function scrapeGovernance(platformId: string): Promise<any> {
-  throw new Error(
-    'Use adminScrapeGovernance from adminClient for sensitive actions'
-  );
+  return aoSendAdmin<any>('ScrapeGovernance', { platformId });
 }
 
 export async function addSubscriber(subscriber: any): Promise<any> {
@@ -99,15 +149,13 @@ export async function getBalances(): Promise<any[]> {
   return aoSend<any[]>('GetBalances');
 }
 
-// Note: Use adminAdjustBalance from adminClient for sensitive actions
+// Sensitive action - requires admin authentication
 export async function adjustBalance(
   address: string,
   amount: number,
   reason: string
 ): Promise<any> {
-  throw new Error(
-    'Use adminAdjustBalance from adminClient for sensitive actions'
-  );
+  return aoSendAdmin<any>('AdjustBalance', { address, amount, reason });
 }
 
 export async function getErrors(): Promise<any[]> {

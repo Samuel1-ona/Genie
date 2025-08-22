@@ -1,5 +1,4 @@
-import { aoSend } from '@/lib/aoClient';
-import { adminScrapeGovernance } from '@/lib/adminClient';
+import { aoSend, aoSendAdmin } from '@/lib/aoClient';
 import type { GovernancePlatform } from '@/types';
 
 export const governanceApi = {
@@ -18,7 +17,11 @@ export const governanceApi = {
     name?: string,
     url?: string
   ): Promise<{ count: number; refreshedAt: number }> {
-    const result = await adminScrapeGovernance(governanceId);
+    const result = await aoSendAdmin<any>('ScrapeGovernance', {
+      platformId: governanceId,
+      name,
+      url,
+    });
 
     return {
       count: result.proposalsScraped || 0,
