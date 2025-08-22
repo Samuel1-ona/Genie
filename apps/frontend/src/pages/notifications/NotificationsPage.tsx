@@ -4,6 +4,8 @@ import { SubscriberTable } from '@/components/notifications/SubscriberTable';
 import { AddSubscriberDialog } from '@/components/notifications/AddSubscriberDialog';
 import { TemplatePreview } from '@/components/notifications/TemplatePreview';
 import { TestBroadcast } from '@/components/notifications/TestBroadcast';
+import { ErrorState } from '@/components/common/ErrorState';
+import { LoadingState } from '@/components/common/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Send, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,7 +13,7 @@ import { cn } from '@/lib/utils';
 type TabType = 'subscribers' | 'templates' | 'test';
 
 export default function NotificationsPage() {
-  const { data: subscribers, isLoading } = useSubscribers();
+  const { data: subscribers, isLoading, error, refetch } = useSubscribers();
   const [activeTab, setActiveTab] = useState<TabType>('subscribers');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
@@ -97,11 +99,23 @@ export default function NotificationsPage() {
         {/* Tab Content */}
         <div className="space-y-6">
           {activeTab === 'subscribers' && (
-            <SubscriberTable
-              subscribers={subscribers || []}
-              isLoading={isLoading}
-              onAddSubscriber={() => setShowAddDialog(true)}
-            />
+            <>
+              {isLoading ? (
+                <LoadingState message="Loading subscribers..." />
+              ) : error ? (
+                <ErrorState
+                  title="Failed to Load Subscribers"
+                  message={error.message}
+                  onRetry={refetch}
+                />
+              ) : (
+                <SubscriberTable
+                  subscribers={subscribers || []}
+                  isLoading={isLoading}
+                  onAddSubscriber={() => setShowAddDialog(true)}
+                />
+              )}
+            </>
           )}
 
           {activeTab === 'templates' && <TemplatePreview />}

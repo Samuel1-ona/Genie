@@ -4,6 +4,9 @@ import { AdjustBalanceDialog } from '@/components/balances/AdjustBalanceDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ErrorState } from '@/components/common/ErrorState';
+import { LoadingState } from '@/components/common/LoadingState';
+import { useBalances } from '@/hooks/useAOClient';
 import {
   Search,
   Bell,
@@ -123,26 +126,23 @@ export default function BalancesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBalances, setSelectedBalances] = useState<string[]>([]);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
-  const [adjustingBalance, setAdjustingBalance] = useState<
-    (typeof mockBalances)[0] | null
-  >(null);
+  const [adjustingBalance, setAdjustingBalance] = useState<any>(null);
+
+  // Fetch real balances data
+  const { data: balances, isLoading, error, refetch } = useBalances();
 
   // Calculate total balance
-  const totalBalance = mockBalances.reduce(
-    (sum, balance) => sum + balance.balance,
-    0
-  );
-  const totalUsdValue = mockBalances.reduce(
-    (sum, balance) => sum + balance.usdValue,
-    0
-  );
-  const uniqueAddresses = mockBalances.length;
+  const totalBalance =
+    balances?.reduce((sum, balance) => sum + (balance.balance || 0), 0) || 0;
+  const totalUsdValue =
+    balances?.reduce((sum, balance) => sum + (balance.usdValue || 0), 0) || 0;
+  const uniqueAddresses = balances?.length || 0;
 
   // Calculate 30-day change (mock data)
   const thirtyDayChange = 124856.12;
   const thirtyDayPercentage = 5.4;
 
-  const handleAdjustBalance = (balance: (typeof mockBalances)[0]) => {
+  const handleAdjustBalance = (balance: any) => {
     setAdjustingBalance(balance);
     setShowAdjustDialog(true);
   };
@@ -162,10 +162,11 @@ export default function BalancesPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedBalances.length === mockBalances.length) {
+    if (!balances) return;
+    if (selectedBalances.length === balances.length) {
       setSelectedBalances([]);
     } else {
-      setSelectedBalances(mockBalances.map(b => b.id));
+      setSelectedBalances(balances.map(b => b.id));
     }
   };
 
@@ -353,14 +354,24 @@ export default function BalancesPage() {
           </div>
 
           {/* Balances Table */}
-          <BalancesTable
-            balances={mockBalances}
-            searchQuery={searchQuery}
-            selectedBalances={selectedBalances}
-            onSelectBalance={handleSelectBalance}
-            onSelectAll={handleSelectAll}
-            onAdjustBalance={handleAdjustBalance}
-          />
+          {isLoading ? (
+            <LoadingState message="Loading balances..." />
+          ) : error ? (
+            <ErrorState
+              title="Failed to Load Balances"
+              message={error.message}
+              onRetry={refetch}
+            />
+          ) : (
+            <BalancesTable
+              balances={balances || []}
+              searchQuery={searchQuery}
+              selectedBalances={selectedBalances}
+              onSelectBalance={handleSelectBalance}
+              onSelectAll={handleSelectAll}
+              onAdjustBalance={handleAdjustBalance}
+            />
+          )}
         </div>
 
         {/* Recent Distribution History Section */}

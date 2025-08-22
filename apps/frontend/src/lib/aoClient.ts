@@ -3,7 +3,9 @@
  * Features: requestId, timeout, retries, JSON encode/decode, normalized errors
  */
 
-import { getEnv } from '@/config/env';
+import { getEnv, env } from '@/config/env';
+import { mockAo } from '@/server/mockAo';
+import { toast } from './toast';
 
 type AOEnvelope = {
   Target: string;
@@ -23,6 +25,30 @@ function sleep(ms: number) {
 }
 
 /**
+ * Map HTTP status codes to user-friendly error messages
+ */
+function getErrorMessage(status: number, action: string): string {
+  switch (status) {
+    case 429:
+      return 'Rate limit exceeded. Please try again in a few minutes.';
+    case 500:
+      return 'Server error occurred. Please try again later.';
+    case 502:
+    case 503:
+    case 504:
+      return 'Service temporarily unavailable. Please try again later.';
+    case 401:
+      return 'Authentication required. Please log in again.';
+    case 403:
+      return 'Access denied. You do not have permission to perform this action.';
+    case 404:
+      return 'Resource not found.';
+    default:
+      return `Failed to ${action.toLowerCase()}. Please try again.`;
+  }
+}
+
+/**
  * Send request to regular AO bridge endpoint
  * Used for non-sensitive actions that don't require admin authentication
  */
@@ -31,6 +57,17 @@ export async function aoSend<T>(
   data?: any,
   tags?: Record<string, string>
 ): Promise<T> {
+  // Use mock if enabled
+  if (env.MOCK) {
+    try {
+      const result = await mockAo(action, data, tags);
+      return result as T;
+    } catch (error) {
+      console.error('Mock AO error:', error);
+      throw new Error(`Mock ${action} failed: ${String(error)}`);
+    }
+  }
+
   const Target = getEnv('VITE_AO_TARGET_ID');
   const body: AOEnvelope = {
     Target,
@@ -51,9 +88,17 @@ export async function aoSend<T>(
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (!res.ok) throw new Error(`AO HTTP ${res.status}`);
+
+      if (!res.ok) {
+        const errorMessage = getErrorMessage(res.status, action);
+        throw new Error(errorMessage);
+      }
+
       const json = await res.json();
-      if (json.ok === false) throw new Error(json.error || 'AO returned error');
+      if (json.ok === false) {
+        throw new Error(json.error || `AO ${action} failed`);
+      }
+
       return json.data as T;
     } catch (e) {
       lastError = e;
@@ -61,7 +106,11 @@ export async function aoSend<T>(
       await sleep(400 * (attempt + 1));
     }
   }
-  throw new Error(`aoSend(${action}) failed: ${String(lastError)}`);
+
+  // Show toast for final error
+  const errorMessage = lastError?.message || `aoSend(${action}) failed`;
+  toast.error('Request Failed', errorMessage);
+  throw new Error(errorMessage);
 }
 
 /**
@@ -74,6 +123,17 @@ export async function aoSendAdmin<T>(
   data?: any,
   tags?: Record<string, string>
 ): Promise<T> {
+  // Use mock if enabled
+  if (env.MOCK) {
+    try {
+      const result = await mockAo(action, data, tags);
+      return result as T;
+    } catch (error) {
+      console.error('Mock admin AO error:', error);
+      throw new Error(`Mock admin ${action} failed: ${String(error)}`);
+    }
+  }
+
   const payload: AdminCommandRequest = {
     action,
     data,
@@ -92,10 +152,17 @@ export async function aoSendAdmin<T>(
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (!res.ok) throw new Error(`Admin command HTTP ${res.status}`);
+
+      if (!res.ok) {
+        const errorMessage = getErrorMessage(res.status, `admin ${action}`);
+        throw new Error(errorMessage);
+      }
+
       const json = await res.json();
-      if (json.ok === false)
-        throw new Error(json.error || 'Admin command returned error');
+      if (json.ok === false) {
+        throw new Error(json.error || `Admin command ${action} failed`);
+      }
+
       return json.data as T;
     } catch (e) {
       lastError = e;
@@ -103,7 +170,11 @@ export async function aoSendAdmin<T>(
       await sleep(400 * (attempt + 1));
     }
   }
-  throw new Error(`aoSendAdmin(${action}) failed: ${String(lastError)}`);
+
+  // Show toast for final error
+  const errorMessage = lastError?.message || `aoSendAdmin(${action}) failed`;
+  toast.error('Admin Action Failed', errorMessage);
+  throw new Error(errorMessage);
 }
 
 // Helper function to get environment variables

@@ -44,7 +44,7 @@ export const env = {
   API_BASE_URL: getEnvOptional('VITE_API_BASE_URL') || 'http://localhost:3000',
 
   // Feature Flags
-  USE_MOCK_AO: getEnvBoolean('VITE_USE_MOCK_AO', true),
+  MOCK: getEnvBoolean('VITE_MOCK', false),
   ENABLE_ANALYTICS: getEnvBoolean('VITE_ENABLE_ANALYTICS', false),
   ENABLE_DEBUG_MODE: getEnvBoolean('VITE_ENABLE_DEBUG_MODE', false),
 

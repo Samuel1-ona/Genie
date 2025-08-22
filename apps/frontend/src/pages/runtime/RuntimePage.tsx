@@ -1,14 +1,27 @@
 import { useState } from 'react';
-import { useScrapeHistory } from '@/hooks/useAOClient';
+import { useScrapeHistory, useApiRateLimits } from '@/hooks/useAOClient';
 import { RuntimeKpis } from '@/components/runtime/RuntimeKpis';
 import { CallsChart } from '@/components/runtime/CallsChart';
 import { HistoryTable } from '@/components/runtime/HistoryTable';
 import { Controls } from '@/components/runtime/Controls';
+import { ErrorState } from '@/components/common/ErrorState';
+import { LoadingState } from '@/components/common/LoadingState';
 import { Input } from '@/components/ui/input';
 import { Bell, Moon, Search } from 'lucide-react';
 
 export default function RuntimePage() {
-  const { data: scrapeHistory, isLoading: historyLoading } = useScrapeHistory();
+  const {
+    data: scrapeHistory,
+    isLoading: historyLoading,
+    error: historyError,
+    refetch: refetchHistory,
+  } = useScrapeHistory();
+  const {
+    data: apiData,
+    isLoading: apiLoading,
+    error: apiError,
+    refetch: refetchApi,
+  } = useApiRateLimits();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Mock data for KPI cards
@@ -129,11 +142,21 @@ export default function RuntimePage() {
             <CallsChart />
 
             {/* Scraping History Table */}
-            <HistoryTable
-              data={scrapeHistory || []}
-              isLoading={historyLoading}
-              searchQuery={searchQuery}
-            />
+            {historyLoading ? (
+              <LoadingState message="Loading scraping history..." />
+            ) : historyError ? (
+              <ErrorState
+                title="Failed to Load Scraping History"
+                message={historyError.message}
+                onRetry={refetchHistory}
+              />
+            ) : (
+              <HistoryTable
+                data={scrapeHistory || []}
+                isLoading={historyLoading}
+                searchQuery={searchQuery}
+              />
+            )}
           </div>
 
           {/* Right Column - Controls and Side Panel */}
@@ -146,47 +169,60 @@ export default function RuntimePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 API Rate Limits
               </h3>
-              <div className="space-y-4">
-                {rateLimits.map((limit, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {limit.platform}
-                      </span>
-                      <span
-                        className={`
-                        font-medium
-                        ${
-                          limit.status === 'warning'
-                            ? 'text-yellow-600 dark:text-yellow-400'
-                            : limit.status === 'error'
-                              ? 'text-red-600 dark:text-red-400'
-                              : 'text-green-600 dark:text-green-400'
-                        }
-                      `}
-                      >
-                        {limit.percentage}%
-                      </span>
+              {apiLoading ? (
+                <LoadingState
+                  message="Loading rate limits..."
+                  showSpinner={false}
+                />
+              ) : apiError ? (
+                <ErrorState
+                  title="Failed to Load Rate Limits"
+                  message={apiError.message}
+                  onRetry={refetchApi}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {rateLimits.map((limit, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {limit.platform}
+                        </span>
+                        <span
+                          className={`
+                          font-medium
+                          ${
+                            limit.status === 'warning'
+                              ? 'text-yellow-600 dark:text-yellow-400'
+                              : limit.status === 'error'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-green-600 dark:text-green-400'
+                          }
+                        `}
+                        >
+                          {limit.percentage}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            limit.status === 'warning'
+                              ? 'bg-yellow-500'
+                              : limit.status === 'error'
+                                ? 'bg-red-500'
+                                : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${limit.percentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {limit.current.toLocaleString()} /{' '}
+                        {limit.limit.toLocaleString()} {limit.period}
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          limit.status === 'warning'
-                            ? 'bg-yellow-500'
-                            : limit.status === 'error'
-                              ? 'bg-red-500'
-                              : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${limit.percentage}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {limit.current.toLocaleString()} /{' '}
-                      {limit.limit.toLocaleString()} {limit.period}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Cache Information */}

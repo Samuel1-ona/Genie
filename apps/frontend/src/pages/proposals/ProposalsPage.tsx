@@ -5,6 +5,8 @@ import { useProposals } from '@/hooks/useAOClient';
 import { Filters } from '@/components/proposals/Filters';
 import { ProposalsTable } from '@/components/proposals/ProposalsTable';
 import { ProposalsTableSkeleton } from '@/components/skeleton/TableSkeleton';
+import { ErrorState } from '@/components/common/ErrorState';
+import { LoadingState } from '@/components/common/LoadingState';
 
 import { Button } from '@/components/ui/button';
 import { Plus, Filter } from 'lucide-react';
@@ -24,7 +26,7 @@ export default function ProposalsPage() {
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Fetch proposals with filters
-  const { data: proposals, isLoading } = useProposals();
+  const { data: proposals, isLoading, error, refetch } = useProposals();
 
   // Filter proposals based on search params
   const filteredProposals = useMemo(() => {
@@ -149,6 +151,14 @@ export default function ProposalsPage() {
           {isLoading ? (
             <div className="p-6">
               <ProposalsTableSkeleton />
+            </div>
+          ) : error ? (
+            <div className="p-6">
+              <ErrorState
+                title="Failed to Load Proposals"
+                message={error.message}
+                onRetry={refetch}
+              />
             </div>
           ) : (
             <ProposalsTable
