@@ -592,15 +592,10 @@ export async function mockAo(
     case 'AddSubscriber':
       const newSubscriber: Subscriber = {
         ...createBaseEntity(`sub-${Date.now()}`),
-        walletAddress: data.walletAddress,
-        email: data.email,
         name: data.name,
-        preferences: data.preferences || {
-          emailNotifications: true,
-          pushNotifications: true,
-          daoIds: [],
-        },
-        isActive: true,
+        type: data.type,
+        endpoint: data.endpoint,
+        isActive: data.active !== false,
         lastActiveAt: new Date().toISOString(),
       };
       mockSubscribers.push(newSubscriber);
@@ -612,6 +607,33 @@ export async function mockAo(
         recipients: mockSubscribers.length,
         sent: mockSubscribers.filter(s => s.isActive).length,
         failed: 0,
+        timestamp: new Date().toISOString(),
+      };
+
+    case 'TestBroadcast':
+      const targetSubscribers = data.subscriberIds
+        ? mockSubscribers.filter(s => data.subscriberIds.includes(s.id))
+        : mockSubscribers.filter(s => s.isActive);
+
+      const results = targetSubscribers.map(subscriber => ({
+        subscriberId: subscriber.id,
+        subscriberName: subscriber.name,
+        type: subscriber.type,
+        status: Math.random() > 0.1 ? 'success' : 'error', // 90% success rate
+        message:
+          Math.random() > 0.1
+            ? 'Message sent successfully'
+            : 'Failed to send message',
+        timestamp: new Date().toISOString(),
+      }));
+
+      return {
+        messageId: `test-${Date.now()}`,
+        proposal: data.proposal,
+        summary: data.summary,
+        results,
+        totalSent: results.filter(r => r.status === 'success').length,
+        totalFailed: results.filter(r => r.status === 'error').length,
         timestamp: new Date().toISOString(),
       };
 

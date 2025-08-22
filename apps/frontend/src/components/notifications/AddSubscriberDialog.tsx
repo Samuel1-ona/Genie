@@ -18,6 +18,7 @@ interface AddSubscriberDialogProps {
     name: string;
     type: 'discord' | 'telegram';
     endpoint: string;
+    active: boolean;
   }) => void;
 }
 
@@ -33,8 +34,8 @@ const TYPE_OPTIONS = [
     id: 'telegram',
     label: 'Telegram',
     icon: MessageCircle,
-    description: 'Telegram chat ID or bot token',
-    placeholder: '-1001234567890 or bot token',
+    description: 'Telegram chat ID',
+    placeholder: '-1001234567890',
   },
 ] as const;
 
@@ -62,7 +63,15 @@ export function AddSubscriberDialog({
     setIsSubmitting(true);
 
     try {
-      await onAdd(formData);
+      // Format the data according to the expected structure
+      const subscriberData = {
+        name: formData.name,
+        type: formData.type,
+        endpoint: formData.endpoint,
+        active: true,
+      };
+
+      await onAdd(subscriberData);
       setFormData({ name: '', type: 'discord', endpoint: '' });
       onClose();
     } catch (error) {
@@ -182,7 +191,7 @@ export function AddSubscriberDialog({
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {formData.type === 'discord'
                   ? 'Enter your Discord webhook URL from channel settings'
-                  : 'Enter your Telegram chat ID or bot token'}
+                  : 'Enter your Telegram chat ID (e.g., -1001234567890)'}
               </p>
             </div>
           </div>

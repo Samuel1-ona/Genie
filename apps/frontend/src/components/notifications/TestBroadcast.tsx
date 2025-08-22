@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProposals } from '@/hooks/useAOClient';
+import { notificationsApi } from '@/api/notifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,10 +17,19 @@ import type { Subscriber } from '@/types';
 
 interface TestBroadcastProps {
   subscribers: Subscriber[];
-  onTestBroadcast: (data: {
+  onTestBroadcast?: (data: {
     proposalId: string;
     subscriberIds: string[];
   }) => void;
+}
+
+interface BroadcastResult {
+  subscriberId: string;
+  subscriberName: string;
+  type: 'discord' | 'telegram';
+  status: 'success' | 'error';
+  message: string;
+  timestamp: string;
 }
 
 export function TestBroadcast({
@@ -32,9 +42,7 @@ export function TestBroadcast({
     []
   );
   const [isSending, setIsSending] = useState(false);
-  const [results, setResults] = useState<{
-    [key: string]: 'success' | 'error';
-  }>({});
+  const [results, setResults] = useState<BroadcastResult[]>([]);
 
   const activeSubscribers = subscribers.filter(s => s.isActive);
 
@@ -42,25 +50,55 @@ export function TestBroadcast({
     if (!selectedProposalId || selectedSubscriberIds.length === 0) return;
 
     setIsSending(true);
-    setResults({});
+    setResults([]);
 
     try {
-      await onTestBroadcast({
-        proposalId: selectedProposalId,
-        subscriberIds: selectedSubscriberIds,
-      });
+      const selectedProposal = proposals?.find(
+        p => p.id === selectedProposalId
+      );
+      if (!selectedProposal) {
+        throw new Error('Selected proposal not found');
+      }
 
-      // Simulate results for demo
-      setTimeout(() => {
-        const mockResults: { [key: string]: 'success' | 'error' } = {};
-        selectedSubscriberIds.forEach(id => {
-          mockResults[id] = Math.random() > 0.2 ? 'success' : 'error';
+      // Use the real API if available, otherwise fall back to the callback
+      if (notificationsApi.testBroadcast) {
+        const response = await notificationsApi.testBroadcast(
+          {
+            id: selectedProposal.id,
+            title: selectedProposal.title,
+            url: selectedProposal.url || '',
+          },
+          selectedSubscriberIds
+        );
+
+        if (response.ok && response.results) {
+          setResults(response.results.results || []);
+        } else {
+          throw new Error('Failed to send test broadcast');
+        }
+      } else if (onTestBroadcast) {
+        // Fallback to callback for backward compatibility
+        await onTestBroadcast({
+          proposalId: selectedProposalId,
+          subscriberIds: selectedSubscriberIds,
         });
-        setResults(mockResults);
-        setIsSending(false);
-      }, 2000);
+      }
     } catch (error) {
       console.error('Test broadcast failed:', error);
+      // Set error results for all selected subscribers
+      const errorResults: BroadcastResult[] = selectedSubscriberIds.map(id => {
+        const subscriber = subscribers.find(s => s.id === id);
+        return {
+          subscriberId: id,
+          subscriberName: subscriber?.name || 'Unknown',
+          type: subscriber?.type || 'discord',
+          status: 'error',
+          message: 'Failed to send test broadcast',
+          timestamp: new Date().toISOString(),
+        };
+      });
+      setResults(errorResults);
+    } finally {
       setIsSending(false);
     }
   };
@@ -148,37 +186,42 @@ export function TestBroadcast({
               </div>
 
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {activeSubscribers.map(subscriber => (
-                  <div
-                    key={subscriber.id}
-                    className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-                  >
-                    <Checkbox
-                      checked={selectedSubscriberIds.includes(subscriber.id)}
-                      onCheckedChange={() =>
-                        handleToggleSubscriber(subscriber.id)
-                      }
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {subscriber.name}
+                {activeSubscribers.map(subscriber => {
+                  const result = results.find(
+                    r => r.subscriberId === subscriber.id
+                  );
+                  return (
+                    <div
+                      key={subscriber.id}
+                      className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    >
+                      <Checkbox
+                        checked={selectedSubscriberIds.includes(subscriber.id)}
+                        onCheckedChange={() =>
+                          handleToggleSubscriber(subscriber.id)
+                        }
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {subscriber.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {subscriber.type} •{' '}
+                          {subscriber.endpoint?.substring(0, 30)}...
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {subscriber.type} •{' '}
-                        {subscriber.endpoint?.substring(0, 30)}...
-                      </div>
+                      {result && (
+                        <div className="flex items-center">
+                          {result.status === 'success' ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {results[subscriber.id] && (
-                      <div className="flex items-center">
-                        {results[subscriber.id] === 'success' ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {activeSubscribers.length === 0 && (
@@ -295,46 +338,46 @@ _Genie Governance Alerts_`}
       </div>
 
       {/* Results */}
-      {Object.keys(results).length > 0 && (
+      {results.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Test Results</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {selectedSubscriberIds.map(subscriberId => {
-                const subscriber = subscribers.find(s => s.id === subscriberId);
-                const result = results[subscriberId];
-
+              {results.map(result => {
+                const subscriber = subscribers.find(
+                  s => s.id === result.subscriberId
+                );
                 return (
                   <div
-                    key={subscriberId}
+                    key={result.subscriberId}
                     className={cn(
                       'flex items-center justify-between p-3 rounded-lg',
-                      result === 'success'
+                      result.status === 'success'
                         ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                         : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
                     )}
                   >
                     <div className="flex items-center space-x-3">
-                      {result === 'success' ? (
+                      {result.status === 'success' ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       ) : (
                         <XCircle className="h-5 w-5 text-red-500" />
                       )}
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white">
-                          {subscriber?.name}
+                          {result.subscriberName || subscriber?.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {subscriber?.type}
+                          {result.type}
                         </div>
                       </div>
                     </div>
                     <div className="text-sm font-medium">
-                      {result === 'success'
+                      {result.status === 'success'
                         ? 'Sent successfully'
-                        : 'Failed to send'}
+                        : result.message || 'Failed to send'}
                     </div>
                   </div>
                 );

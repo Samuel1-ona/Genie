@@ -11,6 +11,8 @@ import {
   Clock,
   MessageSquare,
   MessageCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Subscriber } from '@/types';
@@ -47,7 +49,7 @@ export function SubscriberTable({
   const filteredSubscribers = subscribers.filter(subscriber => {
     const matchesSearch =
       subscriber.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      subscriber.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      subscriber.endpoint?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesType = typeFilter === 'all' || subscriber.type === typeFilter;
     const matchesStatus =
@@ -78,7 +80,20 @@ export function SubscriberTable({
   };
 
   const formatLastSuccess = (lastActiveAt: string) => {
+    if (!lastActiveAt) return 'Never';
+
     const date = new Date(lastActiveAt);
+    const now = new Date();
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    if (diffInMinutes < 10080)
+      return `${Math.floor(diffInMinutes / 1440)}d ago`;
+
     return (
       date.toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -89,7 +104,35 @@ export function SubscriberTable({
     );
   };
 
+  const getStatusIndicator = (subscriber: Subscriber) => {
+    if (!subscriber.lastActiveAt) {
+      return { icon: XCircle, color: 'text-red-500', text: 'Never active' };
+    }
+
+    const lastActive = new Date(subscriber.lastActiveAt);
+    const now = new Date();
+    const diffInHours =
+      (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 1) {
+      return {
+        icon: CheckCircle,
+        color: 'text-green-500',
+        text: 'Recently active',
+      };
+    } else if (diffInHours < 24) {
+      return {
+        icon: CheckCircle,
+        color: 'text-yellow-500',
+        text: 'Active today',
+      };
+    } else {
+      return { icon: XCircle, color: 'text-red-500', text: 'Inactive' };
+    }
+  };
+
   const truncateEndpoint = (endpoint: string, maxLength: number = 40) => {
+    if (!endpoint) return 'No endpoint';
     if (endpoint.length <= maxLength) return endpoint;
     return endpoint.substring(0, maxLength) + '...';
   };
@@ -181,6 +224,8 @@ export function SubscriberTable({
                     TYPE_CONFIG[subscriber.type as keyof typeof TYPE_CONFIG] ||
                     TYPE_CONFIG.discord;
                   const TypeIcon = typeConfig.icon;
+                  const statusIndicator = getStatusIndicator(subscriber);
+                  const StatusIcon = statusIndicator.icon;
 
                   return (
                     <tr
@@ -252,10 +297,19 @@ export function SubscriberTable({
 
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-900 dark:text-white">
-                            {formatLastSuccess(subscriber.lastActiveAt)}
-                          </span>
+                          <StatusIcon
+                            className={cn('h-4 w-4', statusIndicator.color)}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {formatLastSuccess(subscriber.lastActiveAt)}
+                            </span>
+                            <span
+                              className={cn('text-xs', statusIndicator.color)}
+                            >
+                              {statusIndicator.text}
+                            </span>
+                          </div>
                         </div>
                       </td>
 

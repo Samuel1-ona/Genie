@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useSubscribers } from '@/hooks/useAOClient';
+import React, { useState } from 'react';
+import { useSubscribers, useAddSubscriber } from '@/hooks/useAOClient';
+import { notificationsApi } from '@/api/notifications';
 import { SubscriberTable } from '@/components/notifications/SubscriberTable';
 import { AddSubscriberDialog } from '@/components/notifications/AddSubscriberDialog';
 import { TemplatePreview } from '@/components/notifications/TemplatePreview';
@@ -14,6 +15,7 @@ type TabType = 'subscribers' | 'templates' | 'test';
 
 export default function NotificationsPage() {
   const { data: subscribers, isLoading, error, refetch } = useSubscribers();
+  const addSubscriberMutation = useAddSubscriber();
   const [activeTab, setActiveTab] = useState<TabType>('subscribers');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
@@ -21,18 +23,34 @@ export default function NotificationsPage() {
     name: string;
     type: 'discord' | 'telegram';
     endpoint: string;
+    active: boolean;
   }) => {
-    // TODO: Implement add subscriber logic
-    console.log('Adding subscriber:', subscriberData);
-    setShowAddDialog(false);
+    try {
+      const result = await notificationsApi.add(subscriberData);
+      if (result.ok) {
+        // The mutation will handle cache invalidation and toast
+        await addSubscriberMutation.mutateAsync(subscriberData);
+        setShowAddDialog(false);
+      } else {
+        throw new Error('Failed to add subscriber');
+      }
+    } catch (error) {
+      console.error('Failed to add subscriber:', error);
+      throw error;
+    }
   };
 
   const handleTestBroadcast = async (data: {
     proposalId: string;
     subscriberIds: string[];
   }) => {
-    // TODO: Implement test broadcast logic
-    console.log('Test broadcast:', data);
+    try {
+      // This will be handled by the TestBroadcast component using the API
+      console.log('Test broadcast requested:', data);
+    } catch (error) {
+      console.error('Test broadcast failed:', error);
+      throw error;
+    }
   };
 
   const tabs = [
