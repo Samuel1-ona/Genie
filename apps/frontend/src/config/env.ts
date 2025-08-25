@@ -35,9 +35,9 @@ export function getEnvNumber(key: string, defaultValue: number): number {
 export const env = {
   // AO Configuration
   AO_TARGET_ID: getEnv('VITE_AO_TARGET_ID'),
-  AO_RELAY_URL: getEnv('AO_RELAY_URL'),
-  AO_API_KEY: getEnvOptional('AO_API_KEY'),
-  ADMIN_HMAC_SECRET: getEnvOptional('ADMIN_HMAC_SECRET'),
+  AO_RELAY_URL: getEnv('VITE_AO_RELAY_URL'),
+  AO_API_KEY: getEnvOptional('VITE_AO_API_KEY'),
+  ADMIN_HMAC_SECRET: getEnvOptional('VITE_ADMIN_HMAC_SECRET'),
 
   // API Endpoints
   TALLY_BASE_URL: getEnv('VITE_TALLY_BASE_URL'),
