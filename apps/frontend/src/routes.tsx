@@ -4,6 +4,9 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
 import { RouteErrorBoundary } from '@/pages/_error/RouteErrorBoundary';
 
+// Landing page
+const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+
 // Lazy load page components
 const Overview = lazy(() => import('@/pages/Overview'));
 const Proposals = lazy(() => import('@/pages/proposals/ProposalsPage'));
@@ -33,7 +36,18 @@ export function AppRoutes() {
   return (
     <RouteErrorBoundary>
       <Routes>
-        <Route path="/" element={<AppLayout />}>
+        {/* Landing page */}
+        <Route
+          path="/"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-gray-950" />}>
+              <LandingPage />
+            </Suspense>
+          }
+        />
+
+        {/* Main app routes */}
+        <Route path="/app" element={<AppLayout />}>
           <Route
             index
             element={

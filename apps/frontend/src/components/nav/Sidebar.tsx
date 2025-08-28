@@ -16,14 +16,14 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/store/ui';
 
 const navigation = [
-  { name: 'Overview', href: '/', icon: LayoutDashboard },
-  { name: 'Proposals', href: '/proposals', icon: FileText },
-  { name: 'DAOs', href: '/daos', icon: Building2 },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
-  { name: 'Scraping Status', href: '/runtime', icon: Cpu },
-  { name: 'Balances', href: '/balances', icon: Wallet },
-  { name: 'Error Logs', href: '/errors', icon: AlertTriangle },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Overview', href: '/app', icon: LayoutDashboard },
+  { name: 'Proposals', href: '/app/proposals', icon: FileText },
+  { name: 'DAOs', href: '/app/daos', icon: Building2 },
+  { name: 'Notifications', href: '/app/notifications', icon: Bell },
+  { name: 'Scraping Status', href: '/app/runtime', icon: Cpu },
+  { name: 'Balances', href: '/app/balances', icon: Wallet },
+  { name: 'Error Logs', href: '/app/errors', icon: AlertTriangle },
+  { name: 'Settings', href: '/app/settings', icon: Settings },
 ];
 
 interface SidebarProps {
