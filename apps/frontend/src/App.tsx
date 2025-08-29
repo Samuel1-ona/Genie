@@ -1,7 +1,12 @@
 import { AppRoutes } from './routes';
+import { WalletProvider } from './wallet/WalletContext';
 
 function App() {
-  return <AppRoutes />;
+  return (
+    <WalletProvider>
+      <AppRoutes />
+    </WalletProvider>
+  );
 }
 
 export default App;

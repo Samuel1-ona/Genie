@@ -2,9 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/common/AppLogo';
 import { Badge } from '@/components/ui/badge';
+import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
+import { WalletStatusChip } from '@/components/wallet/WalletStatusChip';
+import { useWallet } from '@/wallet/WalletContext';
 
 export function Hero() {
   const navigate = useNavigate();
+  const { isConnected } = useWallet();
 
   // Mock AO connection status - in real app this would ping the AO agent
   const isAOConnected = true; // TODO: Replace with actual AO ping
@@ -32,50 +36,57 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Status chip */}
-          <div className="flex justify-center">
+          {/* Status chips */}
+          <div className="flex justify-center gap-3">
             <Badge
               variant="outline"
               className="bg-gray-900/50 border-gray-700 text-gray-300"
             >
               AO Agent: {isAOConnected ? 'Connected' : 'Unknown'}
             </Badge>
+            <WalletStatusChip />
           </div>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button
-              size="lg"
-              onClick={() => navigate('/app')}
-              className="px-8 py-3 text-lg"
-            >
-              Enter App
-            </Button>
-
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => navigate('/app/proposals')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800"
-              >
-                View Proposals
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="text-gray-300 hover:text-white hover:bg-gray-800"
-              >
-                <a
-                  href="https://www.ao.link/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {isConnected ? (
+              <>
+                <Button
+                  size="lg"
+                  onClick={() => navigate('/app')}
+                  className="px-8 py-3 text-lg"
                 >
-                  Learn More (AO)
-                </a>
-              </Button>
-            </div>
+                  Enter App
+                </Button>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => navigate('/app/proposals')}
+                    className="text-gray-300 hover:text-white hover:bg-gray-800"
+                  >
+                    View Proposals
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    asChild
+                    className="text-gray-300 hover:text-white hover:bg-gray-800"
+                  >
+                    <a
+                      href="https://www.ao.link/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Learn More (AO)
+                    </a>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <ConnectWalletButton />
+            )}
           </div>
 
           {/* Meta line */}

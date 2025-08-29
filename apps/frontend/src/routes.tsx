@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/layouts/AppLayout';
 import { TableSkeleton } from '@/components/skeleton/TableSkeleton';
 import { RouteErrorBoundary } from '@/pages/_error/RouteErrorBoundary';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
 
 // Landing page
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
@@ -47,7 +48,11 @@ export function AppRoutes() {
         />
 
         {/* Main app routes */}
-        <Route path="/app" element={<AppLayout />}>
+        <Route path="/app" element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }>
           <Route
             index
             element={

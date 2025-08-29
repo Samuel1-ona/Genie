@@ -1,7 +1,7 @@
 import { Bell, Search, User } from 'lucide-react';
-import { ConnectButton } from 'arweave-wallet-kit';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
 
 interface TopbarProps {
   className?: string;
@@ -36,7 +36,7 @@ export function Topbar({ className }: TopbarProps) {
 
         {/* User menu */}
         <div className="flex items-center space-x-2">
-          <ConnectButton profileModal={true} showBalance={true} />
+          <ConnectWalletButton />
           <Button variant="ghost" size="sm">
             <User className="h-5 w-5" />
           </Button>

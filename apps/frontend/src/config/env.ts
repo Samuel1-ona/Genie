@@ -47,6 +47,7 @@ export const env = {
   MOCK: getEnvBoolean('VITE_MOCK', false),
   ENABLE_ANALYTICS: getEnvBoolean('VITE_ENABLE_ANALYTICS', false),
   ENABLE_DEBUG_MODE: getEnvBoolean('VITE_ENABLE_DEBUG_MODE', false),
+  REQUIRE_WALLET: getEnvBoolean('VITE_REQUIRE_WALLET', true),
 
   // External Services
   DISCORD_WEBHOOK_URL: getEnvOptional('VITE_DISCORD_WEBHOOK_URL'),
