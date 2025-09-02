@@ -2,8 +2,18 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, MessageCircle, Copy, Save } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import {
+  MessageSquare,
+  MessageCircle,
+  Copy,
+  Save,
+  Sparkles,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Proposal } from '@/types';
+import type { AIResult } from '@/types/ai';
 
 const DEFAULT_DISCORD_TEMPLATE = `{
   "embeds": [
@@ -48,17 +58,71 @@ const DEFAULT_TELEGRAM_TEMPLATE = `🚨 **{title}**
 
 _Genie Governance Alerts_`;
 
-const SAMPLE_DATA = {
-  title: 'UIP-001: Increase Uniswap Treasury',
-  summary:
-    'Proposal to increase the Uniswap treasury allocation by 500 ETH for ongoing development initiatives, community grants, and strategic partnerships.',
-  status: 'Active',
-  deadline: '2024-08-15 20:00 UTC',
-  votes: '780,000 For • 120,000 Against • 50,000 Abstain',
-  url: 'https://snapshot.org/#/uniswap/proposal/0x1234567890abcdef',
+// Helper function to get the best summary text
+const getBestSummary = (
+  proposal?: Proposal,
+  aiResult?: AIResult,
+  preferAI: boolean = true
+): string => {
+  if (!proposal) {
+    return 'Proposal to increase the Uniswap treasury allocation by 500 ETH for ongoing development initiatives, community grants, and strategic partnerships.';
+  }
+
+  if (preferAI && aiResult) {
+    // Prefer AI short summary, then AI long summary, then fallback to description
+    if (aiResult.short && aiResult.short.trim()) {
+      return aiResult.short;
+    }
+    if (aiResult.summary && aiResult.summary.trim()) {
+      // Truncate long summary to ~150 chars for notifications
+      const summary = aiResult.summary;
+      return summary.length > 150 ? summary.substring(0, 147) + '...' : summary;
+    }
+  }
+
+  // Fallback to proposal description, truncated if too long
+  const description = proposal.description || proposal.title;
+  return description.length > 150
+    ? description.substring(0, 147) + '...'
+    : description;
 };
 
-export function TemplatePreview() {
+const getSampleData = (
+  proposal?: Proposal,
+  aiResult?: AIResult,
+  preferAI: boolean = true
+) => ({
+  title: proposal?.title || 'UIP-001: Increase Uniswap Treasury',
+  summary: getBestSummary(proposal, aiResult, preferAI),
+  status: proposal?.status || 'Active',
+  deadline: proposal?.endDate
+    ? new Date(proposal.endDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }) + ' UTC'
+    : '2024-08-15 20:00 UTC',
+  votes: proposal?.votes
+    ? `${proposal.votes.for?.toLocaleString() || 0} For • ${proposal.votes.against?.toLocaleString() || 0} Against • ${proposal.votes.abstain?.toLocaleString() || 0} Abstain`
+    : '780,000 For • 120,000 Against • 50,000 Abstain',
+  url:
+    proposal?.url ||
+    'https://snapshot.org/#/uniswap/proposal/0x1234567890abcdef',
+});
+
+interface TemplatePreviewProps {
+  proposal?: Proposal;
+  aiResult?: AIResult;
+  className?: string;
+}
+
+export function TemplatePreview({
+  proposal,
+  aiResult,
+  className = '',
+}: TemplatePreviewProps) {
   const [discordTemplate, setDiscordTemplate] = useState(
     DEFAULT_DISCORD_TEMPLATE
   );
@@ -66,8 +130,12 @@ export function TemplatePreview() {
     DEFAULT_TELEGRAM_TEMPLATE
   );
   const [isEditing, setIsEditing] = useState(false);
+  const [preferAISummary, setPreferAISummary] = useState(true);
 
-  const replaceVariables = (template: string, data: typeof SAMPLE_DATA) => {
+  const replaceVariables = (
+    template: string,
+    data: ReturnType<typeof getSampleData>
+  ) => {
     return template
       .replace(/{title}/g, data.title)
       .replace(/{summary}/g, data.summary)
@@ -76,6 +144,9 @@ export function TemplatePreview() {
       .replace(/{votes}/g, data.votes)
       .replace(/{url}/g, data.url);
   };
+
+  // Get current data based on proposal, AI result, and preference
+  const currentData = getSampleData(proposal, aiResult, preferAISummary);
 
   const handleSave = () => {
     // TODO: Implement save logic
@@ -96,7 +167,7 @@ export function TemplatePreview() {
 
   const renderDiscordPreview = () => {
     try {
-      const processedTemplate = replaceVariables(discordTemplate, SAMPLE_DATA);
+      const processedTemplate = replaceVariables(discordTemplate, currentData);
       const embed = JSON.parse(processedTemplate).embeds[0];
 
       return (
@@ -134,7 +205,7 @@ export function TemplatePreview() {
   };
 
   const renderTelegramPreview = () => {
-    const processedTemplate = replaceVariables(telegramTemplate, SAMPLE_DATA);
+    const processedTemplate = replaceVariables(telegramTemplate, currentData);
 
     return (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg max-w-md">
@@ -156,6 +227,24 @@ export function TemplatePreview() {
           <p className="text-gray-600 dark:text-gray-400">
             Customize how notifications appear in Discord and Telegram
           </p>
+
+          {/* AI Summary Preference Toggle */}
+          {aiResult && (
+            <div className="flex items-center space-x-2 mt-3">
+              <Switch
+                id="prefer-ai-summary"
+                checked={preferAISummary}
+                onCheckedChange={setPreferAISummary}
+              />
+              <Label
+                htmlFor="prefer-ai-summary"
+                className="text-sm text-gray-600 dark:text-gray-400"
+              >
+                <Sparkles className="h-3 w-3 inline mr-1" />
+                Prefer AI summary when available
+              </Label>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-3">
@@ -196,7 +285,7 @@ export function TemplatePreview() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(SAMPLE_DATA).map(([key, value]) => (
+            {Object.entries(currentData).map(([key, value]) => (
               <div
                 key={key}
                 className="bg-white dark:bg-gray-800 p-3 rounded border"

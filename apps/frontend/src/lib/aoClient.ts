@@ -75,6 +75,147 @@ function getSigner(wallet: any) {
   return hasCreateSigner ? _createSigner(wallet) : createDataItemSigner(wallet);
 }
 
+/**
+ * Send a message to the AO process and wait for result
+ */
+export async function aoSend<T = any>(
+  action: string,
+  data?: any,
+  tags?: Array<{ name: string; value: string }>
+): Promise<T> {
+  try {
+    // Get wallet from window.arweaveWallet
+    const wallet = (window as any).arweaveWallet;
+    if (!wallet) {
+      throw new Error('Arweave wallet not connected');
+    }
+
+    const signer = getSigner(wallet);
+
+    // Prepare tags - filter out tags without values
+    const messageTags = [
+      { name: 'Action', value: action },
+      ...(tags || []).filter(tag => tag.value !== undefined),
+    ];
+
+    // Send message
+    const messageId = await message({
+      process: GENIE_PROCESS,
+      tags: messageTags,
+      data: data ? JSON.stringify(data) : undefined,
+      signer,
+    });
+
+    // Wait for result
+    const result = await waitForResult({
+      process: GENIE_PROCESS,
+      message: messageId,
+    });
+
+    // Parse response
+    if (result.Error) {
+      throw new Error(result.Error);
+    }
+
+    // Try to parse Output as JSON, fallback to raw Output
+    if (result.Output) {
+      try {
+        return JSON.parse(result.Output);
+      } catch {
+        return result.Output as T;
+      }
+    }
+
+    // Fallback to Messages data
+    if (result.Messages && result.Messages.length > 0) {
+      const lastMessage = result.Messages[result.Messages.length - 1];
+      if (lastMessage.Data) {
+        try {
+          return JSON.parse(lastMessage.Data);
+        } catch {
+          return lastMessage.Data as T;
+        }
+      }
+    }
+
+    return result as T;
+  } catch (error) {
+    console.error(`aoSend error for action ${action}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Send an admin message to the AO process and wait for result
+ */
+export async function aoSendAdmin<T = any>(
+  action: string,
+  data?: any,
+  tags?: Array<{ name: string; value: string }>
+): Promise<T> {
+  try {
+    // Get wallet from window.arweaveWallet
+    const wallet = (window as any).arweaveWallet;
+    if (!wallet) {
+      throw new Error('Arweave wallet not connected');
+    }
+
+    const signer = getSigner(wallet);
+
+    // Prepare tags with admin flag - filter out tags without values
+    const messageTags = [
+      { name: 'Action', value: action },
+      { name: 'Admin', value: 'true' },
+      ...(tags || []).filter(tag => tag.value !== undefined),
+    ];
+
+    // Send message
+    const messageId = await message({
+      process: GENIE_PROCESS,
+      tags: messageTags,
+      data: data ? JSON.stringify(data) : undefined,
+      signer,
+    });
+
+    // Wait for result
+    const result = await waitForResult({
+      process: GENIE_PROCESS,
+      message: messageId,
+    });
+
+    // Parse response
+    if (result.Error) {
+      throw new Error(result.Error);
+    }
+
+    // Try to parse Output as JSON, fallback to raw Output
+    if (result.Output) {
+      try {
+        return JSON.parse(result.Output);
+      } catch {
+        return result.Output as T;
+      }
+    }
+
+    // Fallback to Messages data
+    if (result.Messages && result.Messages.length > 0) {
+      const lastMessage = result.Messages[result.Messages.length - 1];
+      if (lastMessage.Data) {
+        try {
+          return JSON.parse(lastMessage.Data);
+        } catch {
+          return lastMessage.Data as T;
+        }
+      }
+    }
+
+    return result as T;
+  } catch (error) {
+    console.error(`aoSendAdmin error for action ${action}:`, error);
+    throw error;
+  }
+}
+
 function parseJsonIfPossible<T = any>(val: any): T | string {
   if (typeof val !== 'string') return val as T;
   try {

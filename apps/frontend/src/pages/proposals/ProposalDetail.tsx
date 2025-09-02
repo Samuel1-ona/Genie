@@ -6,6 +6,7 @@ import { Timeline } from '@/components/proposals/Timeline';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/common/StatusChip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AISummaryCard } from '@/components/ai/AISummaryCard';
 import {
   ArrowLeft,
   ExternalLink,
@@ -269,6 +270,16 @@ export default function ProposalDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* AI Summary Card */}
+            <AISummaryCard
+              proposalId={proposal.id}
+              className="bg-white dark:bg-gray-800 shadow-sm border-0"
+              onRefresh={() => {
+                // Refresh proposals data when AI summary is updated
+                // This will trigger a refetch of the proposals data
+              }}
+            />
 
             <Card className="bg-white dark:bg-gray-800 shadow-sm border-0">
               <CardHeader>

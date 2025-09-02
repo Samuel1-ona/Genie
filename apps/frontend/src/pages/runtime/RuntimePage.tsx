@@ -4,6 +4,7 @@ import { RuntimeKpis } from '@/components/runtime/RuntimeKpis';
 import { CallsChart } from '@/components/runtime/CallsChart';
 import { HistoryTable } from '@/components/runtime/HistoryTable';
 import { Controls } from '@/components/runtime/Controls';
+import { AIStatusPanel } from '@/components/ai/AIStatusPanel';
 import { ErrorState } from '@/components/common/ErrorState';
 import { LoadingState } from '@/components/common/LoadingState';
 import { Input } from '@/components/ui/input';
@@ -157,6 +158,9 @@ export default function RuntimePage() {
           <div className="space-y-6">
             {/* System Controls */}
             <Controls />
+
+            {/* AI Status Panel */}
+            <AIStatusPanel />
 
             {/* API Rate Limits */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
