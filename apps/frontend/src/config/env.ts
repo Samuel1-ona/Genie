@@ -39,9 +39,10 @@ export const env = {
   AO_API_KEY: getEnvOptional('VITE_AO_API_KEY'),
   ADMIN_HMAC_SECRET: getEnvOptional('VITE_ADMIN_HMAC_SECRET'),
 
-  // Tally API Configuration
+  // Tally GraphQL API Configuration
   TALLY_API_KEY: getEnvOptional('VITE_TALLY_API_KEY'),
-  TALLY_BASE_URL: getEnv('VITE_TALLY_BASE_URL'),
+  TALLY_GRAPHQL_URL: getEnv('VITE_TALLY_GRAPHQL_URL'),
+  TALLY_DEFAULT_CHAIN_ID: getEnvOptional('VITE_TALLY_DEFAULT_CHAIN_ID'),
 
   // API Endpoints
   API_BASE_URL: getEnvOptional('VITE_API_BASE_URL') || 'http://localhost:3000',

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/lib/toast';
+import { TallyConfigPanel } from '@/components/tally/TallyConfigPanel';
 
 interface Settings {
   tallyApiKey: string;
@@ -299,6 +300,11 @@ export default function SettingsPage() {
                 Used for retrieving proposal data from Tally.xyz governance
                 platforms
               </p>
+            </div>
+
+            {/* Tally Configuration Panel */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <TallyConfigPanel />
             </div>
 
             {/* Discord Webhook URL */}

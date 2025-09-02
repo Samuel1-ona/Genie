@@ -1,12 +1,12 @@
 /**
- * Tally API Client
- * Handles all Tally API interactions with proper error handling and configuration
+ * Tally GraphQL API Client
+ * Handles all Tally GraphQL API interactions with proper error handling and configuration
  */
 
 import { env } from '@/config/env';
 
-// Tally API base URL
-const TALLY_BASE_URL = 'https://api.tally.so';
+// Tally GraphQL API endpoint
+const TALLY_GRAPHQL_URL = 'https://api.tally.xyz/query';
 
 /**
  * Tally API error class
@@ -23,44 +23,59 @@ export class TallyApiError extends Error {
 }
 
 /**
- * Get Tally API headers with authentication
+ * Get Tally GraphQL API headers with authentication
  */
 function getTallyHeaders(): HeadersInit {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  // Add API key if available
+  // Add API key if available (Tally uses Api-Key header, not Authorization)
   if (env.TALLY_API_KEY) {
-    headers.Authorization = `Bearer ${env.TALLY_API_KEY}`;
+    headers['Api-Key'] = env.TALLY_API_KEY;
   }
 
   return headers;
 }
 
 /**
- * Make a request to the Tally API
+ * Make a GraphQL request to the Tally API
  */
-async function tallyRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
+async function tallyGraphQLRequest<T>(
+  query: string,
+  variables: any = {}
 ): Promise<T> {
-  const url = `${TALLY_BASE_URL}${endpoint}`;
-
   const config: RequestInit = {
+    method: 'POST',
     headers: getTallyHeaders(),
-    ...options,
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
   };
 
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(TALLY_GRAPHQL_URL, config);
 
     if (!response.ok) {
-      let errorMessage = `Tally API error: ${response.status}`;
+      let errorMessage = `Tally GraphQL API error: ${response.status}`;
 
       try {
         const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
+        console.error('Tally API Error Response:', errorData);
+
+        // Try to extract more detailed error information
+        if (errorData.errors && errorData.errors.length > 0) {
+          const graphqlError = errorData.errors[0];
+          errorMessage = `GraphQL Error: ${graphqlError.message}`;
+          if (graphqlError.extensions) {
+            errorMessage += ` (Code: ${graphqlError.extensions.code || 'unknown'})`;
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
       } catch {
         // If we can't parse the error response, use the status text
         errorMessage = response.statusText || errorMessage;
@@ -69,13 +84,15 @@ async function tallyRequest<T>(
       throw new TallyApiError(errorMessage, response.status);
     }
 
-    // Handle empty responses
-    if (response.status === 204) {
-      return {} as T;
+    const data = await response.json();
+
+    // Check for GraphQL errors
+    if (data.errors && data.errors.length > 0) {
+      const errorMessage = data.errors[0].message || 'GraphQL query error';
+      throw new TallyApiError(errorMessage, response.status);
     }
 
-    const data = await response.json();
-    return data;
+    return data.data;
   } catch (error) {
     if (error instanceof TallyApiError) {
       throw error;
@@ -83,7 +100,9 @@ async function tallyRequest<T>(
 
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new TallyApiError('Network error: Unable to connect to Tally API');
+      throw new TallyApiError(
+        'Network error: Unable to connect to Tally GraphQL API'
+      );
     }
 
     throw new TallyApiError(
@@ -93,84 +112,280 @@ async function tallyRequest<T>(
 }
 
 /**
- * Tally API methods
+ * Tally GraphQL API methods
  */
 export const tallyApi = {
   /**
-   * Get organization users
+   * Get proposals by chain ID (main method for fetching proposals)
    */
-  async getOrganizationUsers(organizationId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/organizations/${organizationId}/users`);
+  async getProposals(
+    chainId: string,
+    pagination = { limit: 100, offset: 0 },
+    sort = { field: 'START_BLOCK', order: 'DESC' }
+  ): Promise<any[]> {
+    // Fixed query structure - proposals are likely nested under 'items' or similar
+    const query = `
+      query Proposals($input: ProposalsInput!) {
+        proposals(input: $input) {
+          items {
+            id
+            title
+            eta
+            governor {
+              name
+            }
+            voteStats {
+              support
+              weight
+              votes
+              percent
+            }
+          }
+          pagination {
+            total
+            limit
+            offset
+          }
+        }
+      }
+    `;
+
+    // Structure the input according to the API requirements
+    const variables = {
+      input: {
+        chainId,
+        pagination,
+        sort,
+      },
+    };
+
+    console.log('Tally GraphQL Query:', query);
+    console.log('Tally GraphQL Variables:', variables);
+
+    const result = await tallyGraphQLRequest<any>(query, variables);
+
+    // Extract proposals from the nested structure
+    if (result?.proposals?.items) {
+      return result.proposals.items;
+    } else if (Array.isArray(result?.proposals)) {
+      return result.proposals;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+
+    console.warn('Unexpected Tally API response structure:', result);
+    return [];
   },
 
   /**
-   * Get organization details
+   * Get governors by chain IDs
    */
-  async getOrganization(organizationId: string): Promise<any> {
-    return tallyRequest<any>(`/organizations/${organizationId}`);
+  async getGovernors(
+    chainIds: string[],
+    pagination = { limit: 100, offset: 0 },
+    sort = { field: 'TOTAL_PROPOSALS', order: 'DESC' }
+  ): Promise<any[]> {
+    const query = `
+      query Governors($input: GovernorsInput!) {
+        governors(input: $input) {
+          id
+          name
+          tokens {
+            stats {
+              voters
+            }
+          }
+          proposalStats {
+            total
+            active
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      input: {
+        chainIds,
+        pagination,
+        sort,
+      },
+    };
+
+    return tallyGraphQLRequest<any[]>(query, variables);
   },
 
   /**
-   * Get organization proposals
-   */
-  async getOrganizationProposals(organizationId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/organizations/${organizationId}/proposals`);
-  },
-
-  /**
-   * Get proposal details
+   * Get proposal details by ID
    */
   async getProposal(proposalId: string): Promise<any> {
-    return tallyRequest<any>(`/proposals/${proposalId}`);
+    // For individual proposals, we'll need to search across chains
+    // This is a simplified approach - in practice you might need to know the chainId
+    const query = `
+      query Proposal($id: ID!) {
+        proposal(id: $id) {
+          id
+          title
+          description
+          eta
+          governor {
+            id
+            name
+            organization {
+              id
+              name
+              slug
+            }
+          }
+          voteStats {
+            support
+            weight
+            votes
+            percent
+          }
+          status
+          startBlock
+          endBlock
+          executionEta
+          createdBlock
+          createdTimestamp
+        }
+      }
+    `;
+
+    return tallyGraphQLRequest<any>(query, {
+      id: proposalId,
+    });
   },
 
   /**
-   * Get proposal votes
+   * Get votes for a proposal
    */
   async getProposalVotes(proposalId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/proposals/${proposalId}/votes`);
+    const query = `
+      query Votes($proposalId: ID!, $pagination: Pagination) {
+        votes(proposalId: $proposalId, pagination: $pagination) {
+          id
+          support
+          weight
+          reason
+          voter {
+            id
+            address
+            ens
+            name
+          }
+          blockNumber
+          blockTimestamp
+        }
+      }
+    `;
+
+    return tallyGraphQLRequest<any[]>(query, {
+      proposalId,
+      pagination: { limit: 100, offset: 0 },
+    });
   },
 
   /**
-   * Get user details
+   * Get account details by address
    */
-  async getUser(userId: string): Promise<any> {
-    return tallyRequest<any>(`/users/${userId}`);
+  async getAccount(address: string): Promise<any> {
+    const query = `
+      query Account($address: String!) {
+        account(address: $address) {
+          id
+          address
+          ens
+          twitter
+          name
+          bio
+          picture
+          safes
+          type
+          votes {
+            id
+            support
+            weight
+            proposal {
+              id
+              title
+            }
+          }
+          proposalsCreated {
+            id
+            title
+            status
+          }
+        }
+      }
+    `;
+
+    return tallyGraphQLRequest<any>(query, {
+      address,
+    });
   },
 
   /**
-   * Search organizations
+   * Get organizations (if supported by the API)
    */
-  async searchOrganizations(query: string): Promise<any[]> {
-    return tallyRequest<any[]>(
-      `/organizations/search?q=${encodeURIComponent(query)}`
-    );
+  async getOrganizations(
+    pagination = { limit: 20, offset: 0 }
+  ): Promise<any[]> {
+    // This might not be supported in the current Tally API
+    // Returning empty array as placeholder
+    console.warn('getOrganizations not yet implemented for Tally GraphQL API');
+    return [];
   },
 
   /**
-   * Get user's organizations
+   * Test method using the exact working query from examples
    */
-  async getUserOrganizations(userId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/users/${userId}/organizations`);
-  },
+  async testProposals(chainId: string = 'eip155:1'): Promise<any[]> {
+    // Start with the absolute minimal query to test the API structure
+    const query = `
+      query Proposals($input: ProposalsInput!) {
+        proposals(input: $input) {
+          items {
+            id
+            title
+          }
+          pagination {
+            total
+            limit
+            offset
+          }
+        }
+      }
+    `;
 
-  /**
-   * Get governance tokens
-   */
-  async getGovernanceTokens(organizationId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/organizations/${organizationId}/tokens`);
-  },
+    const variables = {
+      input: {
+        chainId,
+        pagination: { limit: 1, offset: 0 },
+        // Remove sort to test if it's causing issues
+      },
+    };
 
-  /**
-   * Get delegates
-   */
-  async getDelegates(organizationId: string): Promise<any[]> {
-    return tallyRequest<any[]>(`/organizations/${organizationId}/delegates`);
+    console.log('Test Query Variables:', variables);
+
+    const result = await tallyGraphQLRequest<any>(query, variables);
+
+    // Extract proposals from the nested structure
+    if (result?.proposals?.items) {
+      return result.proposals.items;
+    } else if (Array.isArray(result?.proposals)) {
+      return result.proposals;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+
+    console.warn('Unexpected Tally API response structure:', result);
+    return [];
   },
 };
 
 /**
- * Retry wrapper for Tally API calls
+ * Retry wrapper for Tally GraphQL API calls
  */
 export async function tallyRequestWithRetry<T>(
   requestFn: () => Promise<T>,
@@ -200,7 +415,7 @@ export async function tallyRequestWithRetry<T>(
       // Exponential backoff
       const delay = baseDelay * Math.pow(2, attempt);
       console.log(
-        `Tally API request failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`
+        `Tally GraphQL API request failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`
       );
       await new Promise(resolve => setTimeout(resolve, delay));
     }

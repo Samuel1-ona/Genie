@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -29,6 +29,7 @@ import {
   Eye,
   Vote,
   BarChart3,
+  Sparkles,
 } from 'lucide-react';
 import {
   useProposals,
@@ -37,6 +38,11 @@ import {
   useBalances,
   useSystemInfo,
 } from '@/lib/aoClient';
+import {
+  useExistingProposals,
+  useGovernancePlatformsWithTally,
+} from '@/hooks/useProposalsWithTally';
+import { useScrapeGovernance } from '@/hooks/useAOConnect';
 import {
   PieChart,
   Pie,
@@ -127,15 +133,42 @@ function calculateProgress(proposal: any): number {
 export default function Overview() {
   const [isScraping, setIsScraping] = useState(false);
 
-  // Data hooks
-  const { data: proposals, isLoading: proposalsLoading } = useProposals();
-  const { data: platforms, isLoading: platformsLoading } =
+  // Data hooks - combine AO and Tally data
+  const { data: aoProposals, isLoading: aoProposalsLoading } = useProposals();
+  const { data: tallyProposals, isLoading: tallyProposalsLoading } =
+    useExistingProposals();
+  const { data: aoPlatforms, isLoading: aoPlatformsLoading } =
     useGovernancePlatforms();
+  const { data: tallyPlatforms, isLoading: tallyPlatformsLoading } =
+    useGovernancePlatformsWithTally();
   const { data: subscribers, isLoading: subscribersLoading } = useSubscribers();
-  // Note: useScrapeHistory and useScrapeGovernance hooks are not available in the new aoClient.ts
-  // These features would need to be implemented as new hooks if needed
-  const scrapingHistory = null;
+
+  // Scrape functionality
+  const scrapeGovernance = useScrapeGovernance();
+  const scrapingHistory = null; // TODO: Implement scrape history hook
   const historyLoading = false;
+
+  // Combine proposals from both sources
+  const proposals = useMemo(() => {
+    const aoProposalIds = new Set((aoProposals || []).map(p => p.id));
+    const tallyProposalsFiltered = (tallyProposals || []).filter(
+      p => !aoProposalIds.has(p.id)
+    );
+    return [...(aoProposals || []), ...tallyProposalsFiltered];
+  }, [aoProposals, tallyProposals]);
+
+  // Combine platforms from both sources
+  const platforms = useMemo(() => {
+    const aoPlatformIds = new Set((aoPlatforms || []).map(p => p.id));
+    const tallyPlatformsFiltered = (tallyPlatforms || []).filter(
+      p => !aoPlatformIds.has(p.id)
+    );
+    return [...(aoPlatforms || []), ...tallyPlatformsFiltered];
+  }, [aoPlatforms, tallyPlatforms]);
+
+  // Combined loading states
+  const proposalsLoading = aoProposalsLoading || tallyProposalsLoading;
+  const platformsLoading = aoPlatformsLoading || tallyPlatformsLoading;
 
   // Ensure proposals is always an array for safety
   const safeProposals = Array.isArray(proposals) ? proposals : [];
@@ -168,14 +201,29 @@ export default function Overview() {
 
   // Handle scrape action
   const handleRunScrape = async () => {
-    if (!platforms?.length) return;
+    if (!safePlatforms?.length) return;
 
     setIsScraping(true);
     try {
-      // Note: Scrape functionality would need to be implemented as a new hook
-      console.log('Scrape functionality not yet implemented');
+      // Get the first available platform to scrape
+      const platform = safePlatforms[0];
+      console.log('Starting scrape for platform:', platform);
+
+      // Call the scrape governance mutation
+      await scrapeGovernance.mutateAsync({
+        governanceId: platform.id,
+        platformConfig: {
+          name: platform.name,
+          url: platform.url,
+          type: platform.type,
+        },
+      });
+
+      // The mutation will handle success/error toasts and query invalidation
+      console.log('Scrape completed successfully');
     } catch (error) {
       console.error('Scrape failed:', error);
+      // Error is already handled by the mutation
     } finally {
       setIsScraping(false);
     }
@@ -222,16 +270,45 @@ export default function Overview() {
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 Track governance activity across all your DAOs
               </p>
+              {/* Data Source Indicators */}
+              <div className="mt-3 flex items-center space-x-3">
+                {aoProposals && aoProposals.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    {aoProposals.length} from AO Process
+                  </Badge>
+                )}
+                {tallyProposals && tallyProposals.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    {tallyProposals.length} from Tally API
+                  </Badge>
+                )}
+                {platforms && platforms.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
+                  >
+                    {platforms[0]?.name || 'Tally.xyz'} Platform
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 onClick={handleRunScrape}
-                disabled={isScraping || !platforms?.length}
+                disabled={scrapeGovernance.isPending || !safePlatforms?.length}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
                 aria-label="Run scraping process to fetch latest proposals"
               >
                 <Play className="h-4 w-4 mr-2" />
-                {isScraping ? 'Running...' : 'Run Scrape'}
+                {scrapeGovernance.isPending ? 'Running...' : 'Run Scrape'}
               </Button>
               <Link to="/daos">
                 <Button variant="outline">

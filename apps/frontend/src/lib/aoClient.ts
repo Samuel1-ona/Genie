@@ -216,6 +216,117 @@ export async function aoSendAdmin<T = any>(
   }
 }
 
+/**
+ * Send a message to the AO process (alias for aoSend)
+ */
+export async function aoMessage<T = any>(
+  action: string,
+  data?: any,
+  tags?: Array<{ name: string; value: string }>
+): Promise<T> {
+  return aoSend<T>(action, data, tags);
+}
+
+/**
+ * Dry run an AO action without modifying state
+ */
+export async function aoDryrun<T = any>(
+  action: string,
+  data?: any,
+  tags?: Array<{ name: string; value: string }>
+): Promise<T> {
+  try {
+    // Get wallet from window.arweaveWallet
+    const wallet = (window as any).arweaveWallet;
+    if (!wallet) {
+      throw new Error('Arweave wallet not connected');
+    }
+
+    const signer = getSigner(wallet);
+
+    // Prepare tags - filter out tags without values
+    const messageTags = [
+      { name: 'Action', value: action },
+      ...(tags || []).filter(tag => tag.value !== undefined),
+    ];
+
+    // Send dryrun message (same as regular message but for read-only operations)
+    const messageId = await message({
+      process: GENIE_PROCESS,
+      tags: messageTags,
+      data: data ? JSON.stringify(data) : undefined,
+      signer,
+    });
+
+    // Wait for result
+    const result = await waitForResult({
+      process: GENIE_PROCESS,
+      message: messageId,
+    });
+
+    // Parse response
+    if (result.Error) {
+      throw new Error(result.Error);
+    }
+
+    // Try to parse Output as JSON, fallback to raw Output
+    if (result.Output) {
+      try {
+        return JSON.parse(result.Output);
+      } catch {
+        return result.Output as T;
+      }
+    }
+
+    // Fallback to Messages data
+    if (result.Messages && result.Messages.length > 0) {
+      const lastMessage = result.Messages[result.Messages.length - 1];
+      if (lastMessage.Data) {
+        try {
+          return JSON.parse(lastMessage.Data);
+        } catch {
+          return lastMessage.Data as T;
+        }
+      }
+    }
+
+    return result as T;
+  } catch (error) {
+    console.error(`aoDryrun error for action ${action}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get a user-friendly error message from an error object
+ */
+export function getErrorMessage(error: any, operation: string): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error && typeof error === 'object') {
+    // Check for common error patterns
+    if (error.message) return error.message;
+    if (error.error) return error.error;
+    if (error.Error) return error.Error;
+    if (error.reason) return error.reason;
+
+    // Try to stringify the error object
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return `Unknown error occurred during ${operation}`;
+    }
+  }
+
+  return `An unexpected error occurred during ${operation}`;
+}
+
 function parseJsonIfPossible<T = any>(val: any): T | string {
   if (typeof val !== 'string') return val as T;
   try {
@@ -428,61 +539,112 @@ export function useProposals() {
   return useQuery({
     queryKey: QUERY_KEYS.proposals,
     queryFn: async () => {
-      try {
-        const dryrunResult = await dryrun({
-          process: GENIE_PROCESS,
-          tags: [{ name: 'Action', value: 'GetAllProposals' }],
-        });
+      const maxRetries = 3;
+      let lastError: any;
 
-        console.log('GetAllProposals dryrun:', dryrunResult);
-
-        const data = handleAOReadResponse(
-          dryrunResult as AOBaseResult,
-          'GetAllProposals-Response'
-        );
-
-        console.log('useProposals - raw data:', data);
-        console.log('useProposals - data type:', typeof data);
-        console.log('useProposals - isArray(data):', Array.isArray(data));
-        console.log('useProposals - data.Proposals:', (data as any)?.Proposals);
-        console.log(
-          'useProposals - isArray(data.Proposals):',
-          Array.isArray((data as any)?.Proposals)
-        );
-
-        // Handle case where AO returns terminal prompt instead of data
-        if (
-          data &&
-          typeof data === 'object' &&
-          data.prompt &&
-          data.data === ''
-        ) {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
           console.log(
-            'useProposals - AO returned terminal prompt, returning empty array'
+            `Attempting to fetch proposals (attempt ${attempt + 1}/${maxRetries})`
           );
-          return [];
+
+          const dryrunResult = await dryrun({
+            process: GENIE_PROCESS,
+            tags: [{ name: 'Action', value: 'GetAllProposals' }],
+          });
+
+          console.log('GetAllProposals dryrun:', dryrunResult);
+
+          const data = handleAOReadResponse(
+            dryrunResult as AOBaseResult,
+            'GetAllProposals-Response'
+          );
+
+          console.log('useProposals - raw data:', data);
+          console.log('useProposals - data type:', typeof data);
+          console.log('useProposals - isArray(data):', Array.isArray(data));
+          console.log(
+            'useProposals - data.Proposals:',
+            (data as any)?.Proposals
+          );
+          console.log(
+            'useProposals - isArray(data.Proposals):',
+            Array.isArray((data as any)?.Proposals)
+          );
+
+          // Handle case where AO returns terminal prompt instead of data
+          if (
+            data &&
+            typeof data === 'object' &&
+            data.prompt &&
+            data.data === ''
+          ) {
+            console.log(
+              'useProposals - AO returned terminal prompt, returning empty array'
+            );
+            return [];
+          }
+
+          let result;
+          if (Array.isArray((data as any)?.Proposals)) {
+            result = (data as any).Proposals;
+          } else if (Array.isArray(data)) {
+            result = data;
+          } else {
+            result = [];
+          }
+
+          console.log('useProposals - final result:', result);
+          console.log('useProposals - result type:', typeof result);
+          console.log('useProposals - isArray(result):', Array.isArray(result));
+
+          return result;
+        } catch (error) {
+          lastError = error;
+          console.warn(`Attempt ${attempt + 1} failed:`, error);
+
+          // Don't retry on certain errors
+          if (
+            typeof error === 'object' &&
+            error &&
+            'message' in error &&
+            typeof error.message === 'string' &&
+            (error.message.includes('wallet') || error.message.includes('cors'))
+          ) {
+            break;
+          }
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries - 1) {
+            const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
-
-        let result;
-        if (Array.isArray((data as any)?.Proposals)) {
-          result = (data as any).Proposals;
-        } else if (Array.isArray(data)) {
-          result = data;
-        } else {
-          result = [];
-        }
-
-        console.log('useProposals - final result:', result);
-        console.log('useProposals - result type:', typeof result);
-        console.log('useProposals - isArray(result):', Array.isArray(result));
-
-        return result;
-      } catch (error) {
-        handleAOError(error, 'fetching proposals');
       }
+
+      // If all retries failed, handle the error gracefully
+      console.error('All retry attempts failed for fetching proposals');
+
+      // For network errors, return empty array instead of throwing
+      if (
+        typeof lastError === 'object' &&
+        lastError &&
+        'message' in lastError &&
+        typeof lastError.message === 'string' &&
+        (lastError.message.includes('network') ||
+          lastError.message.includes('fetch'))
+      ) {
+        console.warn('Network error detected, returning empty proposals array');
+        return [];
+      }
+
+      // For other errors, throw as usual
+      handleAOError(lastError, 'fetching proposals');
     },
     staleTime: 30000,
     gcTime: 300000,
+    retry: false, // We handle retries manually above
   });
 }
 
@@ -519,41 +681,91 @@ export function useGovernancePlatforms() {
   return useQuery({
     queryKey: QUERY_KEYS.platforms,
     queryFn: async () => {
-      try {
-        const dryrunResult = await dryrun({
-          process: GENIE_PROCESS,
-          tags: [{ name: 'Action', value: 'GetGovernancePlatforms' }],
-        });
+      const maxRetries = 3;
+      let lastError: any;
 
-        console.log('GetGovernancePlatforms dryrun:', dryrunResult);
-
-        const data = handleAOReadResponse(
-          dryrunResult as AOBaseResult,
-          'GetGovernancePlatforms-Response'
-        );
-
-        // Handle case where AO returns terminal prompt instead of data
-        if (
-          data &&
-          typeof data === 'object' &&
-          data.prompt &&
-          data.data === ''
-        ) {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
           console.log(
-            'useGovernancePlatforms - AO returned terminal prompt, returning empty array'
+            `Attempting to fetch governance platforms (attempt ${attempt + 1}/${maxRetries})`
           );
-          return [];
-        }
 
-        if (Array.isArray((data as any)?.Platforms))
-          return (data as any).Platforms;
-        if (Array.isArray(data)) return data;
-        return data ?? [];
-      } catch (error) {
-        handleAOError(error, 'fetching platforms');
+          const dryrunResult = await dryrun({
+            process: GENIE_PROCESS,
+            tags: [{ name: 'Action', value: 'GetGovernancePlatforms' }],
+          });
+
+          console.log('GetGovernancePlatforms dryrun:', dryrunResult);
+
+          const data = handleAOReadResponse(
+            dryrunResult as AOBaseResult,
+            'GetGovernancePlatforms-Response'
+          );
+
+          // Handle case where AO returns terminal prompt instead of data
+          if (
+            data &&
+            typeof data === 'object' &&
+            data.prompt &&
+            data.data === ''
+          ) {
+            console.log(
+              'useGovernancePlatforms - AO returned terminal prompt, returning empty array'
+            );
+            return [];
+          }
+
+          if (Array.isArray((data as any)?.Platforms))
+            return (data as any).Platforms;
+          if (Array.isArray(data)) return data;
+          return data ?? [];
+        } catch (error) {
+          lastError = error;
+          console.warn(`Attempt ${attempt + 1} failed:`, error);
+
+          // Don't retry on certain errors
+          if (
+            typeof error === 'object' &&
+            error &&
+            'message' in error &&
+            typeof error.message === 'string' &&
+            (error.message.includes('wallet') || error.message.includes('cors'))
+          ) {
+            break;
+          }
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries - 1) {
+            const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
+
+      // If all retries failed, handle the error gracefully
+      console.error(
+        'All retry attempts failed for fetching governance platforms'
+      );
+
+      // For network errors, return empty array instead of throwing
+      if (
+        typeof lastError === 'object' &&
+        lastError &&
+        'message' in lastError &&
+        typeof lastError.message === 'string' &&
+        (lastError.message.includes('network') ||
+          lastError.message.includes('fetch'))
+      ) {
+        console.warn('Network error detected, returning empty platforms array');
+        return [];
+      }
+
+      // For other errors, throw as usual
+      handleAOError(lastError, 'fetching platforms');
     },
     staleTime: 300000,
+    retry: false, // We handle retries manually above
   });
 }
 

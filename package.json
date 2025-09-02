@@ -14,6 +14,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "aoform": "^1.0.7",
+    "permaweb-deploy": "^2.5.1",
     "yaml": "^2.4.5"
   },
   "peerDependencies": {
