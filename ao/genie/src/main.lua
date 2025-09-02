@@ -1,6 +1,7 @@
 local notification_system = require "lib.notification_system"
 local platform_adapter = require "lib.platform_adapter"
 local proposals = require "lib.proposals"
+local apus_agent = require "apus_agent"
 
 
 
@@ -49,7 +50,10 @@ local function infoHandler(msg)
             "governance_data_scraping",
             "proposal_management", 
             "notification_system",
-            "platform_adapter"
+            "platform_adapter",
+            "apus_ai_summarization",
+            "proposal_analysis",
+            "batch_summarization"
         }
     })
 end
@@ -534,6 +538,86 @@ local function getAllBalancesHandler(msg)
     })
 end
 
+-- Handler to summarize proposals using APUS AI
+local function summarizeProposalHandler(msg)
+    local proposal_data = msg.Data and json.decode(msg.Data) or {}
+    
+    if not proposal_data.id or not proposal_data.title then
+        ao.send({
+            Target = msg.From,
+            Action = "ProposalSummarizationError",
+            Error = "Proposal ID and title are required",
+            Timestamp = tostring(os.time())
+        })
+        return
+    end
+    
+    -- Generate a unique reference for this summarization task
+    local reference = "summarize_" .. proposal_data.id .. "_" .. tostring(os.time())
+    
+    -- Create the summarization request
+    local summarizationRequest = {
+        Target = msg.From,
+        Action = "SummarizeProposal",
+        Data = json.encode(proposal_data),
+        Tags = {
+            ["X-Reference"] = reference
+        }
+    }
+    
+    -- Send the request to the APUS agent
+    ao.send(summarizationRequest)
+    
+    -- Also send a confirmation to the requester
+    ao.send({
+        Target = msg.From,
+        Action = "ProposalSummarizationStarted",
+        ProposalID = proposal_data.id,
+        TaskReference = reference,
+        Status = "processing",
+        Timestamp = tostring(os.time())
+    })
+end
+
+-- Handler to get proposal summary
+local function getProposalSummaryHandler(msg)
+    local proposal_id = msg.Tags.ProposalID
+    
+    if not proposal_id then
+        ao.send({
+            Target = msg.From,
+            Action = "ProposalSummaryError",
+            Error = "ProposalID tag is required",
+            Timestamp = tostring(os.time())
+        })
+        return
+    end
+    
+    -- Create the request to get the summary
+    local summaryRequest = {
+        Target = msg.From,
+        Action = "GetProposalSummary",
+        Tags = {
+            ProposalId = proposal_id
+        }
+    }
+    
+    -- Send the request to the APUS agent
+    ao.send(summaryRequest)
+end
+
+-- Handler to get all proposal summaries
+local function getAllProposalSummariesHandler(msg)
+    -- Create the request to get all summaries
+    local summariesRequest = {
+        Target = msg.From,
+        Action = "GetAllProposalSummaries"
+    }
+    
+    -- Send the request to the APUS agent
+    ao.send(summariesRequest)
+end
+
 -- Register all handlers
 Handlers.add("info",
     Handlers.utils.hasMatchingTag("Action", "Info"),
@@ -658,6 +742,21 @@ Handlers.add("add_balance",
 Handlers.add("get_all_balances",
     Handlers.utils.hasMatchingTag("Action", "GetAllBalances"),
     getAllBalancesHandler
+)
+
+Handlers.add("summarize_proposal",
+    Handlers.utils.hasMatchingTag("Action", "SummarizeProposal"),
+    summarizeProposalHandler
+)
+
+Handlers.add("get_proposal_summary",
+    Handlers.utils.hasMatchingTag("Action", "GetProposalSummary"),
+    getProposalSummaryHandler
+)
+
+Handlers.add("get_all_proposal_summaries",
+    Handlers.utils.hasMatchingTag("Action", "GetAllProposalSummaries"),
+    getAllProposalSummariesHandler
 )
 
 
