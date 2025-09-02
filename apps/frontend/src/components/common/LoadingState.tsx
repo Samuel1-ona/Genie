@@ -69,4 +69,3 @@ export function SkeletonCard({ className = '' }: SkeletonCardProps) {
     </div>
   );
 }
-

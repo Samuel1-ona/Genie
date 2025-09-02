@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useProposals } from '@/hooks/useAOClient';
+import { useProposals } from '@/lib/aoClient';
 import { VoteChart } from '@/components/proposals/VoteChart';
 import { Timeline } from '@/components/proposals/Timeline';
 import { Button } from '@/components/ui/button';

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useProposals } from '@/hooks/useAOClient';
-import { notificationsApi } from '@/api/notifications';
+import { useProposals, useBroadcastNotification } from '@/lib/aoClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,22 +60,7 @@ export function TestBroadcast({
       }
 
       // Use the real API if available, otherwise fall back to the callback
-      if (notificationsApi.testBroadcast) {
-        const response = await notificationsApi.testBroadcast(
-          {
-            id: selectedProposal.id,
-            title: selectedProposal.title,
-            url: selectedProposal.url || '',
-          },
-          selectedSubscriberIds
-        );
-
-        if (response.ok && response.results) {
-          setResults(response.results.results || []);
-        } else {
-          throw new Error('Failed to send test broadcast');
-        }
-      } else if (onTestBroadcast) {
+      if (onTestBroadcast) {
         // Fallback to callback for backward compatibility
         await onTestBroadcast({
           proposalId: selectedProposalId,

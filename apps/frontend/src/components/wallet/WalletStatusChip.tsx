@@ -10,16 +10,21 @@ export function WalletStatusChip() {
 
   if (isConnected && address) {
     return (
-      <Badge variant="outline" className="bg-green-600/20 border-green-500/30 text-green-300">
+      <Badge
+        variant="outline"
+        className="bg-green-600/20 border-green-500/30 text-green-300"
+      >
         Connected • {formatAddress(address)}
       </Badge>
     );
   }
 
   return (
-    <Badge variant="outline" className="bg-gray-600/20 border-gray-500/30 text-gray-300">
+    <Badge
+      variant="outline"
+      className="bg-gray-600/20 border-gray-500/30 text-gray-300"
+    >
       Not Connected
     </Badge>
   );
 }
-

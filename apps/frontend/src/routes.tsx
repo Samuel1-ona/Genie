@@ -48,11 +48,14 @@ export function AppRoutes() {
         />
 
         {/* Main app routes */}
-        <Route path="/app" element={
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        }>
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route
             index
             element={

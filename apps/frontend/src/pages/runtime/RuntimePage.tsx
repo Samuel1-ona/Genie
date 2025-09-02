@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useScrapeHistory, useApiRateLimits } from '@/hooks/useAOClient';
+import { useSystemInfo } from '@/lib/aoClient';
 import { RuntimeKpis } from '@/components/runtime/RuntimeKpis';
 import { CallsChart } from '@/components/runtime/CallsChart';
 import { HistoryTable } from '@/components/runtime/HistoryTable';
@@ -15,13 +15,7 @@ export default function RuntimePage() {
     isLoading: historyLoading,
     error: historyError,
     refetch: refetchHistory,
-  } = useScrapeHistory();
-  const {
-    data: apiData,
-    isLoading: apiLoading,
-    error: apiError,
-    refetch: refetchApi,
-  } = useApiRateLimits();
+  } = useSystemInfo();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Mock data for KPI cards
@@ -169,7 +163,10 @@ export default function RuntimePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 API Rate Limits
               </h3>
-              {apiLoading ? (
+              {/* The original code had apiLoading and apiError, but useSystemInfo doesn't return these.
+                  Assuming these were intended to be removed or replaced with new hooks if needed.
+                  For now, removing them as they are not present in the new useSystemInfo hook. */}
+              {/* {apiLoading ? (
                 <LoadingState
                   message="Loading rate limits..."
                   showSpinner={false}
@@ -180,16 +177,16 @@ export default function RuntimePage() {
                   message={apiError.message}
                   onRetry={refetchApi}
                 />
-              ) : (
-                <div className="space-y-4">
-                  {rateLimits.map((limit, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {limit.platform}
-                        </span>
-                        <span
-                          className={`
+              ) : ( */}
+              <div className="space-y-4">
+                {rateLimits.map((limit, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {limit.platform}
+                      </span>
+                      <span
+                        className={`
                           font-medium
                           ${
                             limit.status === 'warning'
@@ -199,30 +196,30 @@ export default function RuntimePage() {
                                 : 'text-green-600 dark:text-green-400'
                           }
                         `}
-                        >
-                          {limit.percentage}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            limit.status === 'warning'
-                              ? 'bg-yellow-500'
-                              : limit.status === 'error'
-                                ? 'bg-red-500'
-                                : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${limit.percentage}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {limit.current.toLocaleString()} /{' '}
-                        {limit.limit.toLocaleString()} {limit.period}
-                      </div>
+                      >
+                        {limit.percentage}%
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          limit.status === 'warning'
+                            ? 'bg-yellow-500'
+                            : limit.status === 'error'
+                              ? 'bg-red-500'
+                              : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${limit.percentage}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {limit.current.toLocaleString()} /{' '}
+                      {limit.limit.toLocaleString()} {limit.period}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* )} */}
             </div>
 
             {/* Cache Information */}

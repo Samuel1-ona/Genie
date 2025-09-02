@@ -8,6 +8,27 @@ function aoApiPlugin() {
   return {
     name: 'ao-api-plugin',
     configureServer(server) {
+      // Add CORS headers to all responses
+      server.middlewares.use((req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          'GET, POST, PUT, DELETE, OPTIONS'
+        );
+        res.setHeader(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization'
+        );
+
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+
+        next();
+      });
+
       // AO Bridge endpoint
       server.middlewares.use('/api/ao', async (req, res, next) => {
         if (req.method === 'POST') {
@@ -222,5 +243,74 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  server: {
+    port: 5173,
+    host: true,
+    proxy: {
+      // Proxy AO testnet requests to avoid CORS issues
+      '/ao-testnet': {
+        target: 'https://cu.ao-testnet.xyz',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/ao-testnet/, ''),
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(
+              'Received Response from the Target:',
+              proxyRes.statusCode,
+              req.url
+            );
+          });
+        },
+      },
+      // Proxy for the redirected URLs (cu16.ao-testnet.xyz)
+      '/cu16.ao-testnet.xyz': {
+        target: 'https://cu16.ao-testnet.xyz',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/cu16\.ao-testnet\.xyz/, ''),
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request to cu16:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(
+              'Received Response from cu16:',
+              proxyRes.statusCode,
+              req.url
+            );
+          });
+        },
+      },
+      // CORS proxy for AO requests
+      '/ao-proxy': {
+        target: 'https://cu.ao-testnet.xyz',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/ao-proxy/, ''),
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('AO proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('AO proxy request:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('AO proxy response:', proxyRes.statusCode, req.url);
+          });
+        },
+      },
+    },
+  },
+  define: {
+    // Add global variables for development
+    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
   },
 });

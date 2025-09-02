@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/common/ErrorState';
 import { LoadingState } from '@/components/common/LoadingState';
-import { useBalances } from '@/hooks/useAOClient';
+import { useBalances } from '@/lib/aoClient';
 import {
   Search,
   Bell,

@@ -9,10 +9,10 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isConnected } = useWallet();
-  
+
   // Allow bypass for development/demo mode
   const requireWallet = env.REQUIRE_WALLET !== false;
-  
+
   if (!requireWallet || isConnected) {
     return <>{children}</>;
   }
@@ -44,7 +44,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             🔐 Please connect your wallet to continue
           </h1>
           <p className="text-gray-400">
-            Genie-Proposal-Summarizer requires a wallet connection to access the application.
+            Genie-Proposal-Summarizer requires a wallet connection to access the
+            application.
           </p>
         </div>
 
@@ -59,7 +60,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           <div className="flex flex-wrap justify-center gap-2 text-xs">
             <span className="px-2 py-1 bg-gray-800 rounded">Wander.app</span>
             <span className="px-2 py-1 bg-gray-800 rounded">Arweave.app</span>
-            <span className="px-2 py-1 bg-gray-800 rounded">Browser Wallets</span>
+            <span className="px-2 py-1 bg-gray-800 rounded">
+              Browser Wallets
+            </span>
             <span className="px-2 py-1 bg-gray-800 rounded">AO-Sync</span>
           </div>
         </div>
@@ -67,4 +70,3 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     </div>
   );
 }
-

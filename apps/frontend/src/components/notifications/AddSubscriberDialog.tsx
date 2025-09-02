@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,10 +16,11 @@ interface AddSubscriberDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (subscriberData: {
-    name: string;
     type: 'discord' | 'telegram';
-    endpoint: string;
     active: boolean;
+    webhook_url?: string;
+    bot_token?: string;
+    chat_id?: string;
   }) => void;
 }
 
@@ -34,8 +36,8 @@ const TYPE_OPTIONS = [
     id: 'telegram',
     label: 'Telegram',
     icon: MessageCircle,
-    description: 'Telegram chat ID',
-    placeholder: '-1001234567890',
+    description: 'Bot token and chat ID',
+    placeholder: 'bot_token:chat_id',
   },
 ] as const;
 
@@ -60,17 +62,40 @@ export function AddSubscriberDialog({
       return;
     }
 
+    // Validate Telegram endpoint format
+    if (formData.type === 'telegram') {
+      const parts = formData.endpoint.split(':');
+      if (parts.length !== 2) {
+        alert('Telegram endpoint must be in format: bot_token:chat_id');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Format the data according to the expected structure
-      const subscriberData = {
-        name: formData.name,
+      // Format the data according to the AO process expectations
+      let subscriberData: any = {
         type: formData.type,
-        endpoint: formData.endpoint,
         active: true,
       };
 
+      if (formData.type === 'discord') {
+        // Discord expects webhook_url
+        subscriberData.webhook_url = formData.endpoint;
+      } else if (formData.type === 'telegram') {
+        // Telegram expects bot_token and chat_id
+        const parts = formData.endpoint.split(':');
+        if (parts.length === 2) {
+          subscriberData.bot_token = parts[0];
+          subscriberData.chat_id = parts[1];
+        }
+      }
+
+      console.log(
+        'AddSubscriberDialog: Sending subscriber data:',
+        subscriberData
+      );
       await onAdd(subscriberData);
       setFormData({ name: '', type: 'discord', endpoint: '' });
       onClose();
@@ -96,6 +121,10 @@ export function AddSubscriberDialog({
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
             Add New Subscriber
           </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            Add a new notification subscriber to receive proposal updates via
+            Discord or Telegram.
+          </DialogDescription>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
@@ -191,7 +220,7 @@ export function AddSubscriberDialog({
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {formData.type === 'discord'
                   ? 'Enter your Discord webhook URL from channel settings'
-                  : 'Enter your Telegram chat ID (e.g., -1001234567890)'}
+                  : 'Enter your Telegram bot token and chat ID in format: bot_token:chat_id'}
               </p>
             </div>
           </div>

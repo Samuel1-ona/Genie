@@ -125,6 +125,10 @@ export function AdjustBalanceDialog({
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
             Adjust Balance
           </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            Add or remove tokens from this balance. All changes are logged for
+            audit purposes.
+          </DialogDescription>
           <button
             onClick={handleClose}
             disabled={isSubmitting}

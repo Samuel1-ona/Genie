@@ -4,11 +4,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 interface AddPlatformDialogProps {
   isOpen: boolean;
@@ -45,9 +47,10 @@ export function AddPlatformDialog({
       await onAdd(formData);
       setFormData({ name: '', governanceId: '', url: '' });
       onClose();
+      // Success toast is now handled by the mutation hook
     } catch (error) {
       console.error('Failed to add platform:', error);
-      // TODO: Show error toast
+      // Error toast is now handled by the mutation hook
     } finally {
       setIsSubmitting(false);
     }
@@ -67,6 +70,10 @@ export function AddPlatformDialog({
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
             Add New Platform
           </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            Add a new governance platform to monitor proposals and voting
+            activity.
+          </DialogDescription>
           <button
             onClick={handleClose}
             disabled={isSubmitting}

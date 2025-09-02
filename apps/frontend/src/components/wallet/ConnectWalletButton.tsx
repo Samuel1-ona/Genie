@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useWallet } from '@/wallet/WalletContext';
@@ -116,12 +117,12 @@ export function ConnectWalletButton() {
           <DialogTitle className="text-gray-100">
             Connect Your Wallet
           </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-gray-400">
+          <DialogDescription className="text-gray-400">
             Choose your preferred Arweave wallet to connect to
             Genie-Proposal-Summarizer.
-          </p>
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
           <div className="text-xs text-gray-500 space-y-1">
             <p>✅ Real Arweave Wallet Kit Integration</p>
             <p>✅ Supports Wander.app, Arweave.app, Browser Wallets</p>

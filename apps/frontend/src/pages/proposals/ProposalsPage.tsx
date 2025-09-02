@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useProposals } from '@/hooks/useAOClient';
+import { useProposals } from '@/lib/aoClient';
 import { Filters } from '@/components/proposals/Filters';
 import { ProposalsTable } from '@/components/proposals/ProposalsTable';
 import { ProposalsTableSkeleton } from '@/components/skeleton/TableSkeleton';

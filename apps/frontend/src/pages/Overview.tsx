@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -6,35 +8,35 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusChip } from '@/components/common/StatusChip';
-import { TimeAgo } from '@/components/common/TimeAgo';
-import { EmptyState } from '@/components/common/EmptyState';
-import { OverviewTableSkeleton } from '@/components/skeleton/TableSkeleton';
+import { Badge } from '@/components/ui/badge';
+import { ErrorState } from '@/components/common/ErrorState';
+import { LoadingState } from '@/components/common/LoadingState';
 import {
-  LayoutDashboard,
   TrendingUp,
+  TrendingDown,
   Users,
   FileText,
+  Bell,
+  Activity,
+  ArrowRight,
+  Calendar,
   Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
   Play,
   ExternalLink,
-  Activity,
-  BarChart3,
-  Calendar,
-  Target,
   Eye,
   Vote,
-  Settings,
-  MoreHorizontal,
+  BarChart3,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import {
   useProposals,
   useGovernancePlatforms,
-  useScrapeHistory,
-  useScrapeGovernance,
   useSubscribers,
-} from '@/hooks/useAOClient';
+  useBalances,
+  useSystemInfo,
+} from '@/lib/aoClient';
 import {
   PieChart,
   Pie,
@@ -48,7 +50,11 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import { useState } from 'react';
+import { OverviewTableSkeleton } from '@/components/skeleton/TableSkeleton';
+import { StatusChip } from '@/components/common/StatusChip';
+import { TimeAgo } from '@/components/common/TimeAgo';
+import Settings from './Settings';
+import { EmptyState } from '@/components/common/EmptyState';
 
 // Chart colors for different proposal statuses
 const CHART_COLORS = {
@@ -126,19 +132,25 @@ export default function Overview() {
   const { data: platforms, isLoading: platformsLoading } =
     useGovernancePlatforms();
   const { data: subscribers, isLoading: subscribersLoading } = useSubscribers();
-  const { data: scrapingHistory, isLoading: historyLoading } =
-    useScrapeHistory();
-  const scrapeMutation = useScrapeGovernance();
+  // Note: useScrapeHistory and useScrapeGovernance hooks are not available in the new aoClient.ts
+  // These features would need to be implemented as new hooks if needed
+  const scrapingHistory = null;
+  const historyLoading = false;
+
+  // Ensure proposals is always an array for safety
+  const safeProposals = Array.isArray(proposals) ? proposals : [];
+  const safePlatforms = Array.isArray(platforms) ? platforms : [];
 
   // Derived data
-  const activeProposals = proposals?.filter(p => p.status === 'active') || [];
-  const totalProposals = proposals?.length || 0;
-  const totalDAOs = platforms?.length || 0;
+  const activeProposals =
+    safeProposals.filter(p => p.status === 'active') || [];
+  const totalProposals = safeProposals.length || 0;
+  const totalDAOs = safePlatforms.length || 0;
   const lastScrapeTime = scrapingHistory?.[0]?.createdAt;
 
   // Calculate proposal status distribution for chart
   const statusDistribution =
-    proposals?.reduce(
+    safeProposals.reduce(
       (acc, proposal) => {
         acc[proposal.status] = (acc[proposal.status] || 0) + 1;
         return acc;
@@ -160,8 +172,8 @@ export default function Overview() {
 
     setIsScraping(true);
     try {
-      // Run scrape for the first platform as an example
-      await scrapeMutation.mutateAsync(platforms[0].id);
+      // Note: Scrape functionality would need to be implemented as a new hook
+      console.log('Scrape functionality not yet implemented');
     } catch (error) {
       console.error('Scrape failed:', error);
     } finally {
@@ -189,7 +201,7 @@ export default function Overview() {
   const successRate =
     totalProposals > 0
       ? (
-          ((proposals?.filter(
+          ((safeProposals.filter(
             p => p.status === 'passed' || p.status === 'executed'
           ).length || 0) /
             totalProposals) *

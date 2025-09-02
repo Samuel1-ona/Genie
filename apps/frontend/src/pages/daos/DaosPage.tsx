@@ -1,29 +1,37 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGovernancePlatforms } from '@/hooks/useAOClient';
+import {
+  useGovernancePlatforms,
+  useAddGovernancePlatform,
+} from '@/lib/aoClient';
 import { DaoCard } from '@/components/daos/DaoCard';
 import { AddPlatformDialog } from '@/components/daos/AddPlatformDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Grid3X3, List, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 
 export default function DaosPage() {
   const navigate = useNavigate();
   const { data: platforms, isLoading } = useGovernancePlatforms();
+  const addPlatformMutation = useAddGovernancePlatform();
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
+  // Ensure platforms is always an array for safety
+  const safePlatforms = Array.isArray(platforms) ? platforms : [];
+
   // Filter platforms based on search and filters
   const filteredPlatforms = useMemo(() => {
-    if (!platforms) return [];
+    if (!safePlatforms.length) return [];
 
-    return platforms.filter(platform => {
+    return safePlatforms.filter((platform: any) => {
       const matchesSearch =
-        platform.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        platform.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         platform.category?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesPlatform =
@@ -33,16 +41,31 @@ export default function DaosPage() {
 
       return matchesSearch && matchesPlatform && matchesStatus;
     });
-  }, [platforms, searchQuery, platformFilter, statusFilter]);
+  }, [safePlatforms, searchQuery, platformFilter, statusFilter]);
 
-  const handleAddPlatform = (platformData: {
+  const handleAddPlatform = async (platformData: {
     name: string;
     governanceId: string;
     url: string;
   }) => {
-    // TODO: Implement add platform logic
-    console.log('Adding platform:', platformData);
-    setShowAddDialog(false);
+    try {
+      console.log('Adding platform:', platformData);
+
+      // Use the mutation hook to add the platform
+      await addPlatformMutation.mutateAsync({
+        name: platformData.name,
+        url: platformData.url,
+        id: platformData.governanceId,
+        type: 'governoralpha',
+        chainId: '1',
+      });
+
+      // Success is handled by the mutation hook's onSuccess callback
+      setShowAddDialog(false);
+    } catch (error) {
+      console.error('Failed to add platform:', error);
+      // Error is handled by the mutation hook's onError callback
+    }
   };
 
   const handleCardClick = (platformId: string) => {

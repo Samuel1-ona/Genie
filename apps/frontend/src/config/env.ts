@@ -39,12 +39,14 @@ export const env = {
   AO_API_KEY: getEnvOptional('VITE_AO_API_KEY'),
   ADMIN_HMAC_SECRET: getEnvOptional('VITE_ADMIN_HMAC_SECRET'),
 
-  // API Endpoints
+  // Tally API Configuration
+  TALLY_API_KEY: getEnvOptional('VITE_TALLY_API_KEY'),
   TALLY_BASE_URL: getEnv('VITE_TALLY_BASE_URL'),
+
+  // API Endpoints
   API_BASE_URL: getEnvOptional('VITE_API_BASE_URL') || 'http://localhost:3000',
 
   // Feature Flags
-  MOCK: getEnvBoolean('VITE_MOCK', false),
   ENABLE_ANALYTICS: getEnvBoolean('VITE_ENABLE_ANALYTICS', false),
   ENABLE_DEBUG_MODE: getEnvBoolean('VITE_ENABLE_DEBUG_MODE', false),
   REQUIRE_WALLET: getEnvBoolean('VITE_REQUIRE_WALLET', true),

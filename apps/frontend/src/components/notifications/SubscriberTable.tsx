@@ -45,8 +45,11 @@ export function SubscriberTable({
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Ensure subscribers is always an array for safety
+  const safeSubscribers = Array.isArray(subscribers) ? subscribers : [];
+
   // Filter subscribers based on search and filters
-  const filteredSubscribers = subscribers.filter(subscriber => {
+  const filteredSubscribers = safeSubscribers.filter(subscriber => {
     const matchesSearch =
       subscriber.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       subscriber.endpoint?.toLowerCase().includes(searchQuery.toLowerCase());

@@ -1,5 +1,6 @@
 /**
  * Application types for Genie Proposal Summarizer
+ * Aligned with AO contract expectations
  */
 
 // Proposal status types
@@ -12,141 +13,89 @@ export type ProposalStatus =
   | 'canceled'
   | 'expired';
 
-// Bonus: Sample Types (as requested)
+// Proposal interface - aligned with AO contract
 export interface Proposal {
-  id: string;
+  id: string; // Required by AO contract
   title: string;
   description?: string;
   content?: string;
   proposer?: string;
-  platform: string;
+  platform?: string;
   governance_platform_id?: string;
   status: ProposalStatus;
+  type?: string;
   url?: string;
   deadline?: number;
   created_at?: number;
   updated_at?: number;
   executed_at?: number;
   canceled_at?: number;
+
+  // Voting data
   for_votes?: number;
   against_votes?: number;
   abstain_votes?: number;
   quorum?: number;
   total_votes?: number;
+
+  // Execution data
   execution_time?: number;
   timelock_id?: string;
+
+  // Metadata
   metadata?: Record<string, any>;
   actions?: any[];
   tags?: string[];
   category?: string;
 }
 
+// Subscriber interface - aligned with AO contract
+export interface Subscriber {
+  name?: string;
+  type: 'discord' | 'telegram'; // Required by AO contract
+  active?: boolean;
+
+  // Discord-specific fields
+  webhook_url?: string; // Required for Discord
+
+  // Telegram-specific fields
+  bot_token?: string; // Required for Telegram
+  chat_id?: string; // Required for Telegram
+
+  // Optional fields
+  last_success?: number;
+}
+
+// Governance Platform interface - aligned with AO contract
 export interface GovernancePlatform {
   id: string;
+  chainId?: string;
+  contracts?: any[];
+  isIndexing?: boolean;
+  isBehind?: boolean;
+  isPrimary?: boolean;
+  kind?: string;
   name: string;
-  url?: string;
-  proposals_count?: number;
-  last_updated?: number;
-  scrape_status?: 'ok' | 'warning' | 'error' | 'idle';
-}
-
-export type Subscriber =
-  | {
-      type: 'discord';
-      webhook_url: string;
-      active: boolean;
-      last_success?: number;
-    }
-  | {
-      type: 'telegram';
-      chat_id: string;
-      active: boolean;
-      last_success?: number;
-    };
-
-export interface ScrapeHistory {
-  timestamp: number;
-  governanceId: string;
-  status: 'success' | 'rate_limited' | 'error';
-  message?: string;
-}
-
-export interface RateLimit {
-  governanceId: string;
-  remaining: number;
-  resetAt: number;
-}
-
-export interface Balance {
-  address: string;
-  amount: number;
-  updated_at: number;
-}
-
-// Base entity interface
-export interface BaseEntity {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Proposal interface
-export interface Proposal extends BaseEntity {
-  title: string;
-  description: string;
-  status: ProposalStatus;
-  daoId: string;
-  governancePlatformId: string;
-  proposalId: string; // External proposal ID from the platform
-  startDate: string;
-  endDate: string;
+  organization?: any;
+  proposalStats?: any;
+  parameters?: any;
   quorum?: number;
-  votesFor?: number;
-  votesAgainst?: number;
-  votesAbstain?: number;
-  totalVotes?: number;
-  executionDate?: string;
-  executedBy?: string;
-  metadata?: Record<string, any>;
-}
-
-// Subscriber interface
-export interface Subscriber extends BaseEntity {
-  name: string;
-  type: 'discord' | 'telegram';
-  endpoint: string;
-  isActive: boolean;
-  lastActiveAt: string;
-  // Legacy fields for backward compatibility
-  walletAddress?: string;
-  email?: string;
-  preferences?: {
-    emailNotifications: boolean;
-    pushNotifications: boolean;
-    daoIds: string[];
-  };
-}
-
-// Governance Platform interface
-export interface GovernancePlatform extends BaseEntity {
-  name: string;
-  category?: string;
-  status: 'active' | 'error' | 'paused';
-  scrapeStatus: 'success' | 'failed' | 'paused';
-  totalProposals: number;
-  activeProposals: number;
-  lastUpdated: string;
-  type?: string;
-  // Legacy fields for backward compatibility
   slug?: string;
-  baseUrl?: string;
-  apiEndpoint?: string;
-  isActive?: boolean;
-  config?: {
-    rateLimit: RateLimit;
-    supportedFeatures: string[];
-    authRequired: boolean;
-  };
+  timelockId?: string;
+  tokenId?: string;
+  token?: any;
+  type?: string;
+  delegatesCount?: number;
+  delegatesVotesCount?: number;
+  tokenOwnersCount?: number;
+  metadata?: Record<string, any>;
+  created_at?: number;
+  updated_at?: number;
+}
+
+// Balance interface - aligned with AO contract
+export interface Balance {
+  [userId: string]: number; // User ID -> Balance amount
 }
 
 // Runtime Stats interface
@@ -161,36 +110,19 @@ export interface RuntimeStats {
   status: 'healthy' | 'warning' | 'error';
 }
 
+// Scrape History interface
+export interface ScrapeHistory {
+  timestamp: number;
+  governanceId: string;
+  status: 'success' | 'rate_limited' | 'error';
+  message?: string;
+}
+
 // Rate Limit interface
 export interface RateLimit {
-  requestsPerMinute: number;
-  requestsPerHour: number;
-  requestsPerDay: number;
-  burstLimit: number;
-}
-
-// Scrape History interface
-export interface ScrapeHistory extends BaseEntity {
-  platformId: string;
-  status: 'success' | 'failed' | 'partial';
-  timestamp: string;
-  duration: number; // in milliseconds
-  newProposals?: number;
-  unchangedProposals?: number;
-  errorMessage?: string;
-  errorCount?: number;
-}
-
-// Balance interface
-export interface Balance extends BaseEntity {
-  walletAddress: string;
-  tokenAddress: string;
-  tokenSymbol: string;
-  tokenName: string;
-  balance: string;
-  decimals: number;
-  network: string;
-  lastUpdated: string;
+  governanceId: string;
+  remaining: number;
+  resetAt: number;
 }
 
 // AO Message interface

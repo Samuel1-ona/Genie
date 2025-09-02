@@ -87,7 +87,6 @@ AO_API_KEY=your-optional-api-key
 VITE_TALLY_BASE_URL=https://api.tally.xyz/query
 
 # Optional: Development overrides
-VITE_USE_MOCK_AO=false
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
@@ -97,7 +96,7 @@ VITE_API_BASE_URL=http://localhost:3000
 - **`AO_RELAY_URL`**: The HTTP endpoint of your AO relay (e.g., ao.link-compatible relay)
 - **`AO_API_KEY`**: Optional authentication key for your AO relay (if required)
 - **`VITE_TALLY_BASE_URL`**: Base URL for Tally API (governance data)
-- **`VITE_USE_MOCK_AO`**: Set to `false` to use the real AO bridge, `true` for mock data
+
 - **`VITE_API_BASE_URL`**: Base URL for your backend API (if different from default)
 
 ## 🔗 AO Bridge Integration

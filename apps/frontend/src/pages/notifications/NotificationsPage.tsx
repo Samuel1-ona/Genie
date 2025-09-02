@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useSubscribers, useAddSubscriber } from '@/hooks/useAOClient';
-import { notificationsApi } from '@/api/notifications';
+import { useSubscribers, useAddSubscriber } from '@/lib/aoClient';
 import { SubscriberTable } from '@/components/notifications/SubscriberTable';
 import { AddSubscriberDialog } from '@/components/notifications/AddSubscriberDialog';
 import { TemplatePreview } from '@/components/notifications/TemplatePreview';
@@ -20,22 +19,20 @@ export default function NotificationsPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const handleAddSubscriber = async (subscriberData: {
-    name: string;
     type: 'discord' | 'telegram';
-    endpoint: string;
     active: boolean;
+    webhook_url?: string;
+    bot_token?: string;
+    chat_id?: string;
   }) => {
     try {
-      const result = await notificationsApi.add(subscriberData);
-      if (result.ok) {
-        // The mutation will handle cache invalidation and toast
-        await addSubscriberMutation.mutateAsync(subscriberData);
-        setShowAddDialog(false);
-      } else {
-        throw new Error('Failed to add subscriber');
-      }
+      // Use the mutation hook to add the subscriber
+      await addSubscriberMutation.mutateAsync(subscriberData);
+      setShowAddDialog(false);
+      // Success is handled by the mutation hook's onSuccess callback
     } catch (error) {
       console.error('Failed to add subscriber:', error);
+      // Error is handled by the mutation hook's onError callback
       throw error;
     }
   };

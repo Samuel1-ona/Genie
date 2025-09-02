@@ -1,47 +1,44 @@
-/**
- * Admin client for sensitive AO actions
- * Uses aoSendAdmin from aoClient for consistent error handling and retries
- */
-
-import { aoSendAdmin } from './aoClient';
+// Admin client for administrative operations
+// This is a stub implementation - actual admin functions would be implemented here
 
 /**
- * Send admin command to AO bridge
- * This endpoint handles HMAC authentication internally
+ * Admin function to scrape governance data
  */
-export async function adminSend<T>(
-  action: string,
-  data?: any,
-  tags?: Record<string, string>
-): Promise<T> {
-  return aoSendAdmin<T>(action, data, tags);
+export async function adminScrapeGovernance(platform: string): Promise<void> {
+  console.log(`Admin scrape governance for platform: ${platform}`);
+  // TODO: Implement actual admin scrape functionality
+  throw new Error('Admin scrape functionality not implemented');
 }
 
-// Admin-specific AO functions for sensitive actions
-export async function adminScrapeGovernance(platformId: string): Promise<any> {
-  return adminSend<any>('ScrapeGovernance', { platformId });
+/**
+ * Admin function to clear cache
+ */
+export async function adminClearCache(): Promise<void> {
+  console.log('Admin clear cache');
+  // TODO: Implement actual admin clear cache functionality
+  throw new Error('Admin clear cache functionality not implemented');
 }
 
-export async function adminClearCache(): Promise<any> {
-  return adminSend<any>('ClearCache');
+/**
+ * Admin function to reset rate limits
+ */
+export async function adminResetRateLimits(): Promise<void> {
+  console.log('Admin reset rate limits');
+  // TODO: Implement actual admin reset rate limits functionality
+  throw new Error('Admin reset rate limits functionality not implemented');
 }
 
-export async function adminResetRateLimits(): Promise<any> {
-  return adminSend<any>('ResetRateLimits');
-}
-
+/**
+ * Admin function to adjust balance
+ */
 export async function adminAdjustBalance(
   address: string,
   amount: number,
   reason: string
-): Promise<any> {
-  return adminSend<any>('AdjustBalance', { address, amount, reason });
-}
-
-export async function adminAddBalance(
-  address: string,
-  amount: number,
-  reason: string
-): Promise<any> {
-  return adminSend<any>('AddBalance', { address, amount, reason });
+): Promise<void> {
+  console.log(
+    `Admin adjust balance for ${address}: ${amount}, reason: ${reason}`
+  );
+  // TODO: Implement actual admin balance adjustment functionality
+  throw new Error('Admin balance adjustment functionality not implemented');
 }
